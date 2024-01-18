@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "hardhat/console.sol";
 
-contract X1000 {
+contract X1000 is Initializable, OwnableUpgradeable, AccessControlUpgradeable {
     struct Config {
         uint256 gap;
         mapping(uint8 => uint64) poolLevels; // pool level => size, maximum WEI6 => full size
@@ -46,4 +46,6 @@ contract X1000 {
         uint256 lvalue; // open long value
         uint256 svalue; // open short value
     }
+
+    function initialize() public initializer {}
 }
