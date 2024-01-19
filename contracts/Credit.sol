@@ -6,8 +6,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./interfaces/IERC20Extend.sol";
 import "hardhat/console.sol";
 import "./libs/Base.sol";
 
@@ -80,13 +80,30 @@ contract Credit is OwnableUpgradeable, Base {
         if ($.config.minTopupAmount > amount) {
             revert ErrorMinTopupAmount($.config.minTopupAmount);
         }
-        IERC20 creditToken = IERC20($.config.creditToken);
+        IERC20Extend creditToken = IERC20Extend($.config.creditToken);
         // transfer credit
         creditToken.transferFrom(msg.sender, address(this), amount);
+        uint256 creditAmount = convertErc20ToCredit(amount);
         // then credit for account
-        $.credits[account] += amount;
-        $.totalTopup += amount;
-        emit Topup(msg.sender, account, amount);
+        $.credits[account] += creditAmount;
+        $.totalTopup += creditAmount;
+        emit Topup(msg.sender, account, creditAmount);
+    }
+
+    function convertErc20ToCredit(uint256 amount) private returns (uint256) {
+        CreditStorage storage $ = _getOwnStorage();
+        IERC20Extend creditToken = IERC20Extend($.config.creditToken);
+        uint8 decimals = creditToken.decimals();
+        // transfer credit
+        return (amount / (10 ** decimals)) * WEI6;
+    }
+
+    function convertCreditToErc20(uint256 amount) private returns (uint256) {
+        CreditStorage storage $ = _getOwnStorage();
+        IERC20Extend creditToken = IERC20Extend($.config.creditToken);
+        uint8 decimals = creditToken.decimals();
+        // transfer credit
+        return (amount / WEI6) * (10 ** decimals);
     }
 
     // Withdraw credit into zkusd
@@ -102,22 +119,51 @@ contract Credit is OwnableUpgradeable, Base {
             revert ErrorMaxWithdrawAmount($.config.maxWithdrawAmount);
         }
 
-        IERC20 creditToken = IERC20($.config.creditToken);
-        // transfer credit
-        creditToken.transfer(account, amount);
+        $.credits[account] -= amount;
         $.totalWithdraw += amount;
+        IERC20Extend creditToken = IERC20Extend($.config.creditToken);
+        // transfer credit
+        uint256 erc20Amount = convertCreditToErc20(amount);
+        creditToken.transfer(account, erc20Amount);
         emit Withdraw(msg.sender, account, amount);
     }
 
     function topupSystem(uint256 amount) external {
         CreditStorage storage $ = _getOwnStorage();
-        IERC20 creditToken = IERC20($.config.creditToken);
+        IERC20Extend creditToken = IERC20Extend($.config.creditToken);
         // transfer credit
+        uint256 creditAmount = convertErc20ToCredit(amount);
         creditToken.transferFrom(msg.sender, address(this), amount);
         // then credit for account
-        $.platform += amount;
+        $.platform += creditAmount;
 
-        emit TopupSystem(msg.sender, amount);
+        emit TopupSystem(msg.sender, creditAmount);
+    }
+
+    ////////////////////
+    /////// ADMIN /////
+    ////////////////////
+    function transfer(
+        address account,
+        uint256 amount,
+        uint256 fee
+    ) external onlyFrom(X1000) {
+        CreditStorage storage $ = _getOwnStorage();
+        $.credits[account] += amount;
+        $.fee += fee;
+        $.platform -= (amount + fee);
+    }
+
+    function transferFrom(
+        address account,
+        uint256 amount,
+        uint256 fee
+    ) external onlyFrom(X1000) {
+        CreditStorage storage $ = _getOwnStorage();
+        require(amount > fee, "Invalid amount and fee");
+        $.credits[account] -= amount;
+        $.fee += fee;
+        $.platform += (amount - fee);
     }
 
     ////////////////////

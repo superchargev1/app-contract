@@ -124,7 +124,7 @@ contract X1000 is OwnableUpgradeable, Base {
     //////////////////
     ///// SYSTEM /////
     //////////////////
-    function burnPosition(uint256 posId) external onlyRole(OPERATOR_ROLE) {}
+    function burnPositions(uint256 posIds) external onlyRole(OPERATOR_ROLE) {}
 
     // force close a position by system
     function forceClosePosition(
@@ -433,9 +433,7 @@ contract X1000 is OwnableUpgradeable, Base {
         pool.lvalue += (_pos * _atPrice) / WEI6 - value;
 
         // transfer credit
-        $.credit.setCredit(account, $.credit.getCredit(account) - value);
-        $.credit.setFee($.credit.getFee() + _fee);
-        $.credit.setPlatform($.credit.platformCredit() + (value - _fee));
+        $.credit.transferFrom(account, value, _fee);
         emit OpenPosition(
             $.lastPosId,
             value,
@@ -510,9 +508,7 @@ contract X1000 is OwnableUpgradeable, Base {
         pool.svalue += (_pos * _atPrice) / WEI6 + value;
 
         // transfer credit
-        $.credit.setCredit(account, $.credit.getCredit(account) - value);
-        $.credit.setFee($.credit.getFee() + _fee);
-        $.credit.setPlatform($.credit.platformCredit() + value - _fee);
+        $.credit.transferFrom(account, value, _fee);
         emit OpenPosition(
             $.lastPosId,
             value,
@@ -581,14 +577,7 @@ contract X1000 is OwnableUpgradeable, Base {
                 _returnValue
             );
             // transfer credit
-            $.credit.setCredit(
-                pos.user,
-                $.credit.getCredit(pos.user) + _returnAmount
-            );
-            $.credit.setFee($.credit.getFee() + _feeAmount);
-            $.credit.setPlatform(
-                $.credit.platformCredit() - (_returnAmount + _feeAmount)
-            );
+            $.credit.transfer(pos.user, _returnAmount, _feeAmount);
 
             // update status
             pos.status = POSITION_STATUS_CLOSED;

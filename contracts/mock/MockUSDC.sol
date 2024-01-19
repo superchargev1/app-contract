@@ -8,4 +8,8 @@ contract MockUSDC is ERC20 {
     constructor(uint256 initialSupply) public ERC20("USDC", "USDC") {
         _mint(msg.sender, initialSupply);
     }
+
+    function decimals() public view virtual override returns (uint8) {
+        return 6;
+    }
 }
