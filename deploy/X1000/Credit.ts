@@ -21,7 +21,7 @@ async function main() {
       Factory,
       [
         contracts?.[networkName]["Bookie"],
-        contracts?.[networkName]["USDC"],
+        contracts?.[networkName]["MockUSDC"],
         minTopup,
         maxWithdraw,
       ],

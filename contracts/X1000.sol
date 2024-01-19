@@ -40,6 +40,7 @@ struct Pool {
 
 contract X1000 is OwnableUpgradeable, Base {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    bytes32 public constant BATCHING = keccak256("BATCHING");
     uint64 public constant WEI6 = 10 ** 6; // base for calculation
     uint64 public constant PRICE_WEI = 10 ** 8; // base for calculation
     // Position types
@@ -269,7 +270,7 @@ contract X1000 is OwnableUpgradeable, Base {
         uint256 value,
         uint256 leverage,
         uint256 price
-    ) public {
+    ) public onlyFrom(BATCHING) {
         // verify input
         _openLongPosition(account, poolId, value, leverage, price);
     }
@@ -280,7 +281,7 @@ contract X1000 is OwnableUpgradeable, Base {
         uint256 value,
         uint256 leverage,
         uint256 price
-    ) public {
+    ) public onlyFrom(BATCHING) {
         // verify input
         _openShortPosition(account, poolId, value, leverage, price);
     }
