@@ -34,7 +34,7 @@ const config: HardhatUserConfig = {
       accounts,
     },
     blastSepolia: {
-      url: "https://sepolia.blast.io",
+      url: "https://serene-evocative-pallet.blast-sepolia.quiknode.pro/89542586272a5c0ee4ac601d48bc18c26ddcd599",
       accounts,
     },
   },

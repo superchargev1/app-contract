@@ -29,5 +29,17 @@ async function main() {
   );
   await (await bookie.grantRole(OPERATOR_ROLE, operator1)).wait();
   await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher)).wait();
-  await (await bookie.grantRole(BATCHING, operator1)).wait();
+  await (
+    await bookie.setAddress(BATCHING, contracts?.[networkName]?.["Batching"])
+  ).wait();
+  await (
+    await bookie.setAddress(X1000, contracts?.[networkName]?.["X1000"])
+  ).wait();
 }
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
