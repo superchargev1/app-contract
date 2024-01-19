@@ -24,6 +24,8 @@ contract Batching is OwnableUpgradeable, Base {
         keccak256("X1000_BATCHER_ROLE");
     bytes32 public constant X1000_BATCHER_BURN_ROLE =
         keccak256("X1000_BATCHER_BURN_ROLE");
+    bytes32 public constant X1000_BATCHER_CLOSE_ROLE =
+        keccak256("X1000_BATCHER_CLOSE_ROLE");
     struct BatchingStorage {
         X1000 x1000;
     }
@@ -40,6 +42,7 @@ contract Batching is OwnableUpgradeable, Base {
         uint256[] lvalue,
         uint256[] svalue
     );
+    event ClosePositionFailed(uint256 pid);
 
     function _getOwnStorage() private pure returns (BatchingStorage storage $) {
         assembly {
@@ -76,7 +79,7 @@ contract Batching is OwnableUpgradeable, Base {
                 {
                     // Thành công, không làm gì cả
                     executionResults[i] = true;
-                } catch Error(string memory errorMessage) {
+                } catch Error(string memory) {
                     // Xử lý lỗi nếu cần thiết
                     executionResults[i] = false;
                 } catch (bytes memory) {
@@ -95,7 +98,7 @@ contract Batching is OwnableUpgradeable, Base {
                 {
                     // Thành công, không làm gì cả
                     executionResults[i] = true;
-                } catch Error(string memory errorMessage) {
+                } catch Error(string memory) {
                     // Xử lý lỗi nếu cần thiết
                     executionResults[i] = false;
                 } catch (bytes memory) {
@@ -135,5 +138,30 @@ contract Batching is OwnableUpgradeable, Base {
             svalue[i] = _svalue;
         }
         emit BurnPositions(burnedPosId, lpos, spos, lvalue, svalue);
+    }
+
+    function closeBatchPosition(
+        uint256[] memory posIds,
+        uint256[] memory prices
+    ) external onlyRole(X1000_BATCHER_CLOSE_ROLE) {
+        BatchingStorage storage $ = _getOwnStorage();
+        bool[] memory executionResults = new bool[](posIds.length);
+        for (uint i = 0; i < posIds.length; i++) {
+            try $.x1000.closePosition(posIds[i], prices[i]) {
+                // Thành công, không làm gì cả
+                executionResults[i] = true;
+            } catch Error(string memory) {
+                // Xử lý lỗi nếu cần thiết
+                executionResults[i] = false;
+            } catch (bytes memory) {
+                // Xử lý lỗi nếu cần thiết
+                executionResults[i] = false;
+            }
+        }
+        for (uint i = 0; i < executionResults.length; i++) {
+            if (!executionResults[i]) {
+                emit ClosePositionFailed(posIds[i]);
+            }
+        }
     }
 }

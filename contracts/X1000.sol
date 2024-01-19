@@ -316,12 +316,25 @@ contract X1000 is OwnableUpgradeable, Base {
         _openShortPosition(account, poolId, value, leverage, price);
     }
 
-    function closePosition(uint256 posId, uint256 price) external {
+    function closePosition(
+        uint256 posId,
+        uint256 price
+    ) public onlyFrom(BATCHING) {
         X1000Storage storage $ = _getOwnStorage();
         Position storage pos = $.positions[posId];
         require(pos.user == msg.sender, "Owner Call Only");
 
         _closePosition(posId, price);
+        emit ClosePosition(
+            posId,
+            pos.amount,
+            pos.leverage,
+            pos.closePrice,
+            $.pools[pos.poolId].lpos,
+            $.pools[pos.poolId].spos,
+            $.pools[pos.poolId].lvalue,
+            $.pools[pos.poolId].svalue
+        );
     }
 
     /*
