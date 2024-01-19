@@ -77,14 +77,6 @@ contract X1000 is OwnableUpgradeable, Base {
         uint256 svalue
     );
 
-    event BurnPosition(
-        uint256[] positionIds,
-        uint64[] lpos,
-        uint64[] spos,
-        uint256[] lvalue,
-        uint256[] svalue
-    );
-
     struct X1000Storage {
         Config config;
         Credit credit;
@@ -124,7 +116,45 @@ contract X1000 is OwnableUpgradeable, Base {
     //////////////////
     ///// SYSTEM /////
     //////////////////
-    function burnPositions(uint256 posIds) external onlyRole(OPERATOR_ROLE) {}
+    function burnPosition(
+        uint256 posId
+    )
+        public
+        onlyFrom(BATCHING)
+        returns (uint256, uint64, uint64, uint256, uint256)
+    {
+        X1000Storage storage $ = _getOwnStorage();
+        if (
+            $.positions[posId].status != POSITION_STATUS_CLOSED &&
+            $.positions[posId].status != POSITION_STATUS_BURNT
+        ) {
+            // close position
+            $.positions[posId].status = POSITION_STATUS_BURNT;
+            Position storage pos = $.positions[posId];
+            if (pos.ptype == POSITION_TYPE_LONG) {
+                $.pools[pos.poolId].lpos -= pos.size;
+                $.pools[pos.poolId].lvalue =
+                    $.pools[pos.poolId].lvalue +
+                    pos.amount -
+                    (pos.size * pos.atPrice) /
+                    WEI6;
+            } else {
+                $.pools[pos.poolId].spos -= pos.size;
+                $.pools[pos.poolId].svalue =
+                    $.pools[pos.poolId].svalue -
+                    (pos.size * pos.atPrice) /
+                    WEI6 -
+                    pos.amount;
+            }
+            return (
+                posId,
+                $.pools[pos.poolId].lpos,
+                $.pools[pos.poolId].spos,
+                $.pools[pos.poolId].lvalue,
+                $.pools[pos.poolId].svalue
+            );
+        }
+    }
 
     // force close a position by system
     function forceClosePosition(

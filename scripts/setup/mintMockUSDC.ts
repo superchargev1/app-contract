@@ -15,7 +15,7 @@ async function main(address: string, funding: number) {
   await (await mockUSDC.transfer(address, funding)).wait();
 }
 
-main("0xc615e3178a63BA2d720eb245f7872a129495C27C", 1000000000)
+main("0x0D1bF830D7dD8A70E074973795B827B0E9ca28ea", 1000000000)
   .then(() => {
     process.exit(0);
   })
