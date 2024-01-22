@@ -74,7 +74,8 @@ contract Batching is OwnableUpgradeable, Base {
                         positions[i].poolId,
                         positions[i].value,
                         positions[i].leverage,
-                        positions[i].price
+                        positions[i].price,
+                        positions[i].plId
                     )
                 {
                     // Thành công, không làm gì cả
@@ -93,7 +94,8 @@ contract Batching is OwnableUpgradeable, Base {
                         positions[i].poolId,
                         positions[i].value,
                         positions[i].leverage,
-                        positions[i].price
+                        positions[i].price,
+                        positions[i].plId
                     )
                 {
                     // Thành công, không làm gì cả
@@ -108,6 +110,7 @@ contract Batching is OwnableUpgradeable, Base {
             }
         }
         for (uint i = 0; i < executionResults.length; i++) {
+            console.log("executionResults[i]: ", executionResults[i], i);
             if (!executionResults[i]) {
                 emit OpenPositionFailed(positions[i].plId);
             }

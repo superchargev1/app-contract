@@ -48,17 +48,26 @@ describe("X1000", function () {
       }
     );
     await x1000.waitForDeployment();
-    return { x1000, bookie, mockUSDC, credit, owner, otherAccount };
+    //deploy batching
+    const Batching = await ethers.getContractFactory("Batching", owner);
+    const batching = await upgrades.deployProxy(
+      Batching,
+      [await bookie.getAddress(), await x1000.getAddress()],
+      {
+        initializer: "initialize",
+      }
+    );
+    await batching.waitForDeployment();
+    return { x1000, bookie, mockUSDC, batching, credit, owner, otherAccount };
   }
 
   describe("Deployment", function () {
     it("Should deploy success", async function () {
-      const { x1000, bookie, credit, owner, otherAccount } = await loadFixture(
-        deployX1000Fixture
-      );
+      const { x1000, bookie, mockUSDC, batching, credit, owner, otherAccount } =
+        await loadFixture(deployX1000Fixture);
     });
     it("Should topup system success", async function () {
-      const { x1000, bookie, mockUSDC, credit, owner, otherAccount } =
+      const { x1000, bookie, mockUSDC, batching, credit, owner, otherAccount } =
         await loadFixture(deployX1000Fixture);
       await (
         await mockUSDC
@@ -105,7 +114,7 @@ describe("X1000", function () {
       expect(await credit.getCredit(otherAccount.address)).to.equal(1000000000);
     });
     it("Should open position success", async function () {
-      const { x1000, bookie, mockUSDC, credit, owner, otherAccount } =
+      const { x1000, bookie, mockUSDC, batching, credit, owner, otherAccount } =
         await loadFixture(deployX1000Fixture);
       await (
         await mockUSDC
@@ -122,31 +131,75 @@ describe("X1000", function () {
       expect(await credit.platformCredit()).to.equal(1000000000000);
       //fund mockUSDC to user
       await (
-        await mockUSDC.connect(owner).transfer(otherAccount.address, 1000000000)
+        await mockUSDC.connect(owner).transfer(otherAccount.address, 2000000000)
       ).wait();
       //approve mockUSDC to credit
       await (
         await mockUSDC
           .connect(otherAccount)
-          .approve(await credit.getAddress(), 1000000000)
+          .approve(await credit.getAddress(), 2000000000)
       ).wait();
       //topup user
-      await (await credit.connect(otherAccount).topup(1000000000)).wait();
-      expect(await credit.getCredit(otherAccount.address)).to.equal(1000000000);
+      await (await credit.connect(otherAccount).topup(2000000000)).wait();
+      expect(await credit.getCredit(otherAccount.address)).to.equal(2000000000);
       //grant role
       const X1000 = ethers.solidityPackedKeccak256(["string"], ["X1000"]);
+      const BATCHING = ethers.solidityPackedKeccak256(["string"], ["BATCHING"]);
       await (await bookie.setAddress(X1000, await x1000.getAddress())).wait();
+      await (
+        await bookie.grantRole(
+          ethers.solidityPackedKeccak256(["string"], ["X1000_BATCHER_ROLE"]),
+          otherAccount.address
+        )
+      ).wait();
+      await (
+        await bookie.setAddress(BATCHING, await batching.getAddress())
+      ).wait();
       //open position
       await (
-        await x1000
-          .connect(otherAccount)
-          .openLongPosition(
-            otherAccount.address,
-            ethers.encodeBytes32String("ETH"),
-            100000000,
-            1000000000,
-            2539210000
-          )
+        await batching.connect(otherAccount).openBatchPosition(
+          [
+            {
+              account: otherAccount.address,
+              poolId: ethers.encodeBytes32String("ETH"),
+              value: 10000000,
+              leverage: 1000000000,
+              price: 2489940000,
+              isLong: true,
+              plId: 1,
+            },
+            {
+              account: otherAccount.address,
+              poolId: ethers.encodeBytes32String("ETH"),
+              value: 10000000,
+              leverage: 1000000000,
+              price: 2490940000,
+              isLong: true,
+              plId: 2,
+            },
+            {
+              account: otherAccount.address,
+              poolId: ethers.encodeBytes32String("ETH"),
+              value: 1000000000,
+              leverage: 1000000000,
+              price: 2491940000,
+              isLong: false,
+              plId: 3,
+            },
+            {
+              account: otherAccount.address,
+              poolId: ethers.encodeBytes32String("ETH"),
+              value: 500000000,
+              leverage: 1000000000,
+              price: 2491850000,
+              isLong: false,
+              plId: 4,
+            },
+          ],
+          {
+            value: 0,
+          }
+        )
       ).wait();
     });
   });

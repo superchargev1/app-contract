@@ -63,7 +63,8 @@ contract X1000 is OwnableUpgradeable, Base {
         uint64 lpos,
         uint64 spos,
         uint256 lvalue,
-        uint256 svalue
+        uint256 svalue,
+        uint256 plId
     );
 
     event ClosePosition(
@@ -299,10 +300,11 @@ contract X1000 is OwnableUpgradeable, Base {
         bytes32 poolId,
         uint256 value,
         uint256 leverage,
-        uint256 price
+        uint256 price,
+        uint256 plId
     ) public onlyFrom(BATCHING) {
         // verify input
-        _openLongPosition(account, poolId, value, leverage, price);
+        _openLongPosition(account, poolId, value, leverage, price, plId);
     }
 
     function openShortPosition(
@@ -310,10 +312,11 @@ contract X1000 is OwnableUpgradeable, Base {
         bytes32 poolId,
         uint256 value,
         uint256 leverage,
-        uint256 price
+        uint256 price,
+        uint256 plId
     ) public onlyFrom(BATCHING) {
         // verify input
-        _openShortPosition(account, poolId, value, leverage, price);
+        _openShortPosition(account, poolId, value, leverage, price, plId);
     }
 
     function closePosition(
@@ -420,7 +423,8 @@ contract X1000 is OwnableUpgradeable, Base {
         bytes32 poolId,
         uint256 value,
         uint256 leverage,
-        uint256 price
+        uint256 price,
+        uint256 plId
     ) private {
         require(
             leverage >= 2 * WEI6 && leverage <= 1000 * WEI6,
@@ -444,9 +448,10 @@ contract X1000 is OwnableUpgradeable, Base {
         uint88 _openPrice = uint88((_value * WEI6) / _pos);
         // calculate liquid price
         uint256 _liqPrice = (_openPrice * (leverage - WEI6)) / leverage;
-        console.log("Price:", _atPrice, _openPrice, _liqPrice);
+        console.log("InPrice & OpenPrice:", _atPrice, _openPrice, _liqPrice);
+        console.log("Position: ", _pos);
         console.log(
-            "Price:",
+            "Value & fee:",
             _value,
             _value - _fee,
             ((_value - _fee) * WEI6) / _pos
@@ -489,7 +494,8 @@ contract X1000 is OwnableUpgradeable, Base {
             pool.lpos,
             pool.spos,
             pool.lvalue,
-            pool.svalue
+            pool.svalue,
+            plId
         );
     }
 
@@ -498,7 +504,8 @@ contract X1000 is OwnableUpgradeable, Base {
         bytes32 poolId,
         uint256 value,
         uint256 leverage,
-        uint256 price
+        uint256 price,
+        uint256 plId
     ) private {
         require(
             leverage >= 2 * WEI6 && leverage <= 1000 * WEI6,
@@ -526,6 +533,14 @@ contract X1000 is OwnableUpgradeable, Base {
         //     10_000 /
         //     leverage;
         uint256 _liqPrice = (_openPrice * (leverage + WEI6)) / leverage;
+        console.log("InPrice & OpenPrice:", _atPrice, _openPrice, _liqPrice);
+        console.log("Position: ", _pos);
+        console.log(
+            "Value & fee:",
+            _value,
+            _value - _fee,
+            ((_value - _fee) * WEI6) / _pos
+        );
         require(_liqPrice > _atPrice, "Error");
 
         // new position
@@ -564,7 +579,8 @@ contract X1000 is OwnableUpgradeable, Base {
             pool.lpos,
             pool.spos,
             pool.lvalue,
-            pool.svalue
+            pool.svalue,
+            plId
         );
     }
 
