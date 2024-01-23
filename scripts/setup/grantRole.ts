@@ -10,6 +10,14 @@ async function main() {
     ["string"],
     ["X1000_BATCHER_ROLE"]
   );
+  const X1000_BATCHER_BURN_ROLE = ethers.solidityPackedKeccak256(
+    ["string"],
+    ["X1000_BATCHER_BURN_ROLE"]
+  );
+  const X1000_BATCHER_CLOSE_ROLE = ethers.solidityPackedKeccak256(
+    ["string"],
+    ["X1000_BATCHER_CLOSE_ROLE"]
+  );
   const BATCHING = ethers.solidityPackedKeccak256(["string"], ["BATCHING"]);
   const X1000 = ethers.solidityPackedKeccak256(["string"], ["X1000"]);
 
@@ -29,6 +37,8 @@ async function main() {
   );
   await (await bookie.grantRole(OPERATOR_ROLE, operator1)).wait();
   await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher)).wait();
+  await (await bookie.grantRole(X1000_BATCHER_BURN_ROLE, batcher)).wait();
+  await (await bookie.grantRole(X1000_BATCHER_CLOSE_ROLE, batcher)).wait();
   await (
     await bookie.setAddress(BATCHING, contracts?.[networkName]?.["Batching"])
   ).wait();
