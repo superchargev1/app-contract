@@ -44,6 +44,21 @@
       "address": "0xEE970698428F623dE2555897520b8d7cC2cD5320",
       "txHash": "0xb2cb099d6a04147f0ae33a3c4f779683b1393f6e8507809d4cd47f113aa97367",
       "kind": "transparent"
+    },
+    {
+      "address": "0x16b3b9075f5aD4BC968071aEA45cf3D11DCff0d6",
+      "txHash": "0x7c842325ae70b1f19e672fc063a0481a42bac9aec12b457809bc09caa5ca8eda",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xbFE18D583a9dCbA233e8bF50BA8B82358e59F4B4",
+      "txHash": "0x4b172fd3359aa81d51ad382f01fd8288b3dd53bef3328b4dc3e1f76472df8b57",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x37EED89471A9AC10f048585313d8fB037CF72B74",
+      "txHash": "0xd0272393b0707a5d65539371dcee1a1506cefa1bdc5f72fb422933ce59321d54",
+      "kind": "transparent"
     }
   ],
   "impls": {
@@ -2161,7 +2176,7 @@
             "label": "bookie",
             "offset": 0,
             "slot": "0",
-            "type": "t_contract(IBookie)5084",
+            "type": "t_contract(IBookie)5107",
             "contract": "Base",
             "src": "contracts/libs/Base.sol:13"
           },
@@ -2217,7 +2232,7 @@
             "label": "uint64",
             "numberOfBytes": "8"
           },
-          "t_contract(IBookie)5084": {
+          "t_contract(IBookie)5107": {
             "label": "contract IBookie",
             "numberOfBytes": "20"
           }
@@ -2424,6 +2439,109 @@
             "numberOfBytes": "8"
           },
           "t_contract(IBookie)5107": {
+            "label": "contract IBookie",
+            "numberOfBytes": "20"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "8622a48b2a5ca688e43991187686886c84c231a700467fdfac0534e07cdc5674": {
+      "address": "0x21d78697C393A87607d3d8389ec5656E058ffCb8",
+      "txHash": "0xa1794f4c237f4a1dafabf2887113246d2d254e75db31918aefd9c94aa0b4a8ae",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [
+          {
+            "label": "bookie",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IBookie)5104",
+            "contract": "Base",
+            "src": "contracts/libs/Base.sol:13"
+          },
+          {
+            "label": "paused",
+            "offset": 20,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Base",
+            "src": "contracts/libs/Base.sol:14"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)147_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)97_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_contract(IBookie)5104": {
             "label": "contract IBookie",
             "numberOfBytes": "20"
           }

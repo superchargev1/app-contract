@@ -629,9 +629,9 @@ contract X1000 is OwnableUpgradeable, Base {
             pos.closePrice = _atPrice;
             emit ClosePosition(
                 posId,
-                pos.amount,
-                pos.leverage,
-                pos.closePrice,
+                _returnAmount,
+                _feeAmount,
+                _atPrice,
                 $.pools[pos.poolId].lpos,
                 $.pools[pos.poolId].spos,
                 $.pools[pos.poolId].lvalue,

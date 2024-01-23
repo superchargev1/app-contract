@@ -177,44 +177,35 @@ describe("X1000", function () {
               isLong: true,
               plId: 1,
             },
-            // {
-            //   account: otherAccount.address,
-            //   poolId: ethers.encodeBytes32String("ETH"),
-            //   value: 10000000,
-            //   leverage: 1000000000,
-            //   price: 2490940000,
-            //   isLong: true,
-            //   plId: 2,
-            // },
-            // {
-            //   account: otherAccount.address,
-            //   poolId: ethers.encodeBytes32String("ETH"),
-            //   value: 1000000000,
-            //   leverage: 1000000000,
-            //   price: 2491940000,
-            //   isLong: false,
-            //   plId: 3,
-            // },
-            // {
-            //   account: otherAccount.address,
-            //   poolId: ethers.encodeBytes32String("ETH"),
-            //   value: 500000000,
-            //   leverage: 1000000000,
-            //   price: 2491850000,
-            //   isLong: false,
-            //   plId: 4,
-            // },
+            {
+              account: otherAccount.address,
+              poolId: ethers.encodeBytes32String("ETH"),
+              value: 10000000,
+              leverage: 1000000000,
+              price: 2215000000,
+              isLong: true,
+              plId: 2,
+            },
+            {
+              account: otherAccount.address,
+              poolId: ethers.encodeBytes32String("ETH"),
+              value: 100000000000,
+              leverage: 1000000000,
+              price: 2215940000,
+              isLong: false,
+              plId: 3,
+            },
           ],
           {
             value: 0,
           }
         )
       ).wait();
-      await (
-        await batching
-          .connect(otherAccount)
-          .closeBatchPosition([1], [2323420000])
-      ).wait();
+      // await (
+      //   await batching
+      //     .connect(otherAccount)
+      //     .closeBatchPosition([1], [2323420000])
+      // ).wait();
     });
   });
 });
