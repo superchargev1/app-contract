@@ -153,6 +153,15 @@ describe("X1000", function () {
         )
       ).wait();
       await (
+        await bookie.grantRole(
+          ethers.solidityPackedKeccak256(
+            ["string"],
+            ["X1000_BATCHER_CLOSE_ROLE"]
+          ),
+          otherAccount.address
+        )
+      ).wait();
+      await (
         await bookie.setAddress(BATCHING, await batching.getAddress())
       ).wait();
       //open position
@@ -163,43 +172,48 @@ describe("X1000", function () {
               account: otherAccount.address,
               poolId: ethers.encodeBytes32String("ETH"),
               value: 10000000,
-              leverage: 1000000000,
-              price: 2489940000,
+              leverage: 100000000,
+              price: 2322420000,
               isLong: true,
               plId: 1,
             },
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("ETH"),
-              value: 10000000,
-              leverage: 1000000000,
-              price: 2490940000,
-              isLong: true,
-              plId: 2,
-            },
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("ETH"),
-              value: 1000000000,
-              leverage: 1000000000,
-              price: 2491940000,
-              isLong: false,
-              plId: 3,
-            },
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("ETH"),
-              value: 500000000,
-              leverage: 1000000000,
-              price: 2491850000,
-              isLong: false,
-              plId: 4,
-            },
+            // {
+            //   account: otherAccount.address,
+            //   poolId: ethers.encodeBytes32String("ETH"),
+            //   value: 10000000,
+            //   leverage: 1000000000,
+            //   price: 2490940000,
+            //   isLong: true,
+            //   plId: 2,
+            // },
+            // {
+            //   account: otherAccount.address,
+            //   poolId: ethers.encodeBytes32String("ETH"),
+            //   value: 1000000000,
+            //   leverage: 1000000000,
+            //   price: 2491940000,
+            //   isLong: false,
+            //   plId: 3,
+            // },
+            // {
+            //   account: otherAccount.address,
+            //   poolId: ethers.encodeBytes32String("ETH"),
+            //   value: 500000000,
+            //   leverage: 1000000000,
+            //   price: 2491850000,
+            //   isLong: false,
+            //   plId: 4,
+            // },
           ],
           {
             value: 0,
           }
         )
+      ).wait();
+      await (
+        await batching
+          .connect(otherAccount)
+          .closeBatchPosition([1], [2323420000])
       ).wait();
     });
   });

@@ -42,15 +42,16 @@ const config: HardhatUserConfig = {
     apiKey: {
       goerli: "U9B9CIHXBY14C9JW3YN9W1JES2MJT63ZI2",
       mainnet: "U9B9CIHXBY14C9JW3YN9W1JES2MJT63ZI2",
-      blastSepolia: "U9B9CIHXBY14C9JW3YN9W1JES2MJT63ZI2",
+      blastSepolia: "blast_sepolia",
     },
     customChains: [
       {
         network: "blastSepolia",
         chainId: 168587773,
         urls: {
-          apiURL: "https://testnet.blastscan.io/api",
-          browserURL: "https://testnet.blastscan.io/",
+          apiURL:
+            "https://api.routescan.io/v2/network/testnet/evm/168587773/etherscan",
+          browserURL: "https://testnet.blastscan.io",
         },
       },
     ],

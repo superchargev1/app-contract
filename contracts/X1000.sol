@@ -323,21 +323,7 @@ contract X1000 is OwnableUpgradeable, Base {
         uint256 posId,
         uint256 price
     ) public onlyFrom(BATCHING) {
-        X1000Storage storage $ = _getOwnStorage();
-        Position storage pos = $.positions[posId];
-        require(pos.user == msg.sender, "Owner Call Only");
-
         _closePosition(posId, price);
-        emit ClosePosition(
-            posId,
-            pos.amount,
-            pos.leverage,
-            pos.closePrice,
-            $.pools[pos.poolId].lpos,
-            $.pools[pos.poolId].spos,
-            $.pools[pos.poolId].lvalue,
-            $.pools[pos.poolId].svalue
-        );
     }
 
     /*
@@ -584,7 +570,7 @@ contract X1000 is OwnableUpgradeable, Base {
         );
     }
 
-    function _closePosition(uint256 posId, uint256 price) internal {
+    function _closePosition(uint256 posId, uint256 price) private {
         X1000Storage storage $ = _getOwnStorage();
         Position storage pos = $.positions[posId];
         Pool storage pool = $.pools[pos.poolId];
@@ -641,6 +627,16 @@ contract X1000 is OwnableUpgradeable, Base {
             // update status
             pos.status = POSITION_STATUS_CLOSED;
             pos.closePrice = _atPrice;
+            emit ClosePosition(
+                posId,
+                pos.amount,
+                pos.leverage,
+                pos.closePrice,
+                $.pools[pos.poolId].lpos,
+                $.pools[pos.poolId].spos,
+                $.pools[pos.poolId].lvalue,
+                $.pools[pos.poolId].svalue
+            );
         }
     }
 
@@ -815,8 +811,12 @@ contract X1000 is OwnableUpgradeable, Base {
             $.config.poolLevels[pool.level]) / WEI6;
         // adjust with current open position & value
         _value = _value + pool.lvalue - (pool.lpos * price) / WEI6; // if may cause error _value < 0
+        console.log("pool.lvalue: ", pool.lvalue);
+        console.log("pool.lpos: ", pool.lpos);
+        console.log("_value: ", _value);
         // and apply platform leverage
         _value *= _sqrt(($.config.leverage * leverage) / WEI6);
+        console.log("_value1: ", _value);
         amount = (_value * WEI6) / price;
         value = _value;
         /*
@@ -878,5 +878,10 @@ contract X1000 is OwnableUpgradeable, Base {
         } else if (y != 0) {
             z = 1;
         }
+    }
+
+    function getPoolData(bytes32 poolId) external view returns (Pool memory) {
+        X1000Storage storage $ = _getOwnStorage();
+        return $.pools[poolId];
     }
 }

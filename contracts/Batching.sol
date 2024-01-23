@@ -42,7 +42,7 @@ contract Batching is OwnableUpgradeable, Base {
         uint256[] lvalue,
         uint256[] svalue
     );
-    event ClosePositionFailed(uint256 pid);
+    event ClosePositionFailed(uint256 pid, string reason);
 
     function _getOwnStorage() private pure returns (BatchingStorage storage $) {
         assembly {
@@ -149,21 +149,20 @@ contract Batching is OwnableUpgradeable, Base {
     ) external onlyRole(X1000_BATCHER_CLOSE_ROLE) {
         BatchingStorage storage $ = _getOwnStorage();
         bool[] memory executionResults = new bool[](posIds.length);
+        string[] memory reasonFaileds = new string[](posIds.length);
         for (uint i = 0; i < posIds.length; i++) {
             try $.x1000.closePosition(posIds[i], prices[i]) {
-                // Thành công, không làm gì cả
                 executionResults[i] = true;
-            } catch Error(string memory) {
-                // Xử lý lỗi nếu cần thiết
+            } catch Error(string memory message) {
                 executionResults[i] = false;
+                reasonFaileds[i] = message;
             } catch (bytes memory) {
-                // Xử lý lỗi nếu cần thiết
                 executionResults[i] = false;
             }
         }
         for (uint i = 0; i < executionResults.length; i++) {
             if (!executionResults[i]) {
-                emit ClosePositionFailed(posIds[i]);
+                emit ClosePositionFailed(posIds[i], reasonFaileds[i]);
             }
         }
     }
