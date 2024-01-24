@@ -131,17 +131,21 @@ describe("X1000", function () {
       expect(await credit.platformCredit()).to.equal(1000000000000);
       //fund mockUSDC to user
       await (
-        await mockUSDC.connect(owner).transfer(otherAccount.address, 2000000000)
+        await mockUSDC
+          .connect(owner)
+          .transfer(otherAccount.address, 2000000000000)
       ).wait();
       //approve mockUSDC to credit
       await (
         await mockUSDC
           .connect(otherAccount)
-          .approve(await credit.getAddress(), 2000000000)
+          .approve(await credit.getAddress(), 2000000000000)
       ).wait();
       //topup user
-      await (await credit.connect(otherAccount).topup(2000000000)).wait();
-      expect(await credit.getCredit(otherAccount.address)).to.equal(2000000000);
+      await (await credit.connect(otherAccount).topup(2000000000000)).wait();
+      expect(await credit.getCredit(otherAccount.address)).to.equal(
+        2000000000000
+      );
       //grant role
       const X1000 = ethers.solidityPackedKeccak256(["string"], ["X1000"]);
       const BATCHING = ethers.solidityPackedKeccak256(["string"], ["BATCHING"]);
