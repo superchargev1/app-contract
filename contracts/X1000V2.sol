@@ -121,7 +121,17 @@ contract X1000V2 is OwnableUpgradeable, Base {
         require(_platformFee < value, "Invalid Platform Fee");
         _size = ((value - _platformFee) * leverage) / WEI6;
         uint256 _position = (_size * WEI6) / price;
+        //calculate total long position
+        uint256 _tempLongPosition = pool.longPosition + _position;
         uint256 _tmpLongSize = pool.longSize + _size;
+        //calculate normalize long position
+        uint256 _normPosition = (_tmpLongSize * WEI6) / price;
+        //calculate delta pnl
+        uint256 _deltaPNL = _tempLongPosition > _normPosition
+            ? _tempLongPosition - _normPosition
+            : 0;
+        // if _deltaPNL  > 0 => system is coming to lost
+        // inject _deltaPNL into formula
         uint256 _pLiquid = getPoolLiquidity(poolId);
         uint256 _openPrice;
         // uint256 _rateLong = _tmpLongSize / $.pools[poolId].shortSize;
@@ -129,11 +139,15 @@ contract X1000V2 is OwnableUpgradeable, Base {
             _openPrice =
                 price +
                 (price * _size * _tmpLongSize) /
-                (_pLiquid + _tmpLongSize) /
+                (_pLiquid + _tmpLongSize - _deltaPNL * price) /
                 $.pools[poolId].shortSize;
         } else {
-            _openPrice = (((_pLiquid + _tmpLongSize + _size) * price) /
-                (_pLiquid + _tmpLongSize));
+            _openPrice = (((_pLiquid +
+                _tmpLongSize +
+                _size -
+                _deltaPNL *
+                price) * price) /
+                (_pLiquid + _tmpLongSize - _deltaPNL * price));
         }
         uint256 _deltaPrice = _openPrice - price;
         uint256 _openValue = (_size * (price - _deltaPrice)) / leverage;
@@ -157,6 +171,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
         $.lastPosId++;
         $.positions[$.lastPosId] = newPos;
         pool.longSize = _tmpLongSize;
+        pool.longPosition = _tempLongPosition;
         $.credit.transferFrom(account, value, _fee + _platformFee);
     }
 
@@ -181,7 +196,16 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 _platformFee = getPlatformFee(_size);
         require(_platformFee < value, "Invalid Platform Fee");
         _size = ((value - _platformFee) * leverage) / WEI6;
+        uint256 _position = (_size * WEI6) / price;
+        //calculate total short position
+        uint256 _tempShortPosition = pool.shortPosition + _position;
         uint256 _tmpShortSize = pool.shortSize + _size;
+        //calculate normalize long position
+        uint256 _normPosition = (_tmpShortSize * WEI6) / price;
+        //calculate delta pnl
+        uint256 _deltaPNL = _tempShortPosition < _normPosition
+            ? _normPosition - _tempShortPosition
+            : 0;
         uint256 _pLiquid = getPoolLiquidity(poolId);
         uint256 _openPrice;
         // uint256 _rateShort = _tmpShortSize / $.pools[poolId].longSize;
@@ -189,12 +213,18 @@ contract X1000V2 is OwnableUpgradeable, Base {
             _openPrice =
                 price -
                 (price * _size * _tmpShortSize) /
-                (_pLiquid + _tmpShortSize) /
+                (_pLiquid + _tmpShortSize - _deltaPNL * price) /
                 $.pools[poolId].longSize;
         } else {
-            _openPrice = (((_pLiquid + _tmpShortSize - _size) * price) /
-                (_pLiquid + _tmpShortSize));
+            _openPrice = (((_pLiquid +
+                _tmpShortSize -
+                _size -
+                _deltaPNL *
+                price) * price) /
+                (_pLiquid + _tmpShortSize - _deltaPNL * price));
         }
+        console.log("price: ", price);
+        console.log("openPrice: ", _openPrice);
         uint256 _deltaPrice = price - _openPrice;
         require(price > _deltaPrice, "Invalid Delta Price");
         uint256 _openValue = (_size * (price - _deltaPrice)) / leverage;
