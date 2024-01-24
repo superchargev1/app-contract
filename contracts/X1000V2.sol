@@ -44,6 +44,8 @@ struct Pool {
     uint8 level;
     uint256 longSize;
     uint256 shortSize;
+    uint256 longPosition;
+    uint256 shortPosition;
 }
 
 contract X1000V2 is OwnableUpgradeable, Base {
@@ -118,6 +120,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 _platformFee = getPlatformFee(_size);
         require(_platformFee < value, "Invalid Platform Fee");
         _size = ((value - _platformFee) * leverage) / WEI6;
+        uint256 _position = (_size * WEI6) / price;
         uint256 _tmpLongSize = pool.longSize + _size;
         uint256 _pLiquid = getPoolLiquidity(poolId);
         uint256 _openPrice;
