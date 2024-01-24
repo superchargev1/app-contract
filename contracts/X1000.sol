@@ -504,7 +504,9 @@ contract X1000 is OwnableUpgradeable, Base {
         require(pool.level > 0, "Invalid Pool");
 
         uint256 _value = (value * leverage) / WEI6;
+        console.log("size of command: ", _value);
         uint256 _fee = platformFee(_value);
+        console.log("_fee: ", _fee);
         require(_fee < value, "Too high fee");
         (uint64 _pos, uint88 _atPrice) = getShortPosition(
             poolId,
@@ -846,10 +848,12 @@ contract X1000 is OwnableUpgradeable, Base {
         uint256 _value = ($.credit.platformCredit() *
             $.config.poolLevels[pool.level]) / WEI6;
         // adjust with current open position & value
+        console.log("pool credit: ", _value);
         _value = _value + (pool.spos * price) / WEI6 - pool.svalue; // if may cause error _value < 0
+        console.log("pool credit after effect by leverage: ", _value);
         // and apply platform leverage
         _value *= _sqrt(($.config.leverage * leverage) / WEI6);
-
+        console.log("pool credit after effect by leverage 1: ", _value);
         amount = (_value * WEI6) / price;
         value = _value;
         /*        
