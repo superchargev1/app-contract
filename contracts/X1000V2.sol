@@ -13,6 +13,7 @@ struct Config {
     uint64 rake;
     uint256 leverage;
     uint256 platformFeePercent;
+    uint256 burst;
 }
 
 enum PositionType {
@@ -82,7 +83,9 @@ contract X1000V2 is OwnableUpgradeable, Base {
         $.pools[bytes32("ETH")].level = 1;
         // system leverage
         $.config.leverage = 100;
-        $.config.platformFeePercent = 4;
+        $.config.platformFeePercent = 1;
+        $.config.burst = 20 * WEI6;
+        $.config.rake = 80;
         $.credit = Credit(creditContractAddress);
     }
 
@@ -117,44 +120,62 @@ contract X1000V2 is OwnableUpgradeable, Base {
         require(pool.level > 0, "Invalid Pool");
 
         uint256 _size = (value * leverage) / WEI6;
+        console.log("_size: ", _size);
         uint256 _platformFee = getPlatformFee(_size);
+        console.log("_platformFee: ", _platformFee);
         require(_platformFee < value, "Invalid Platform Fee");
         _size = ((value - _platformFee) * leverage) / WEI6;
+        console.log("_size after inject fee: ", _size);
         uint256 _position = (_size * WEI6) / price;
+        console.log("_position: ", _position);
         //calculate total long position
         uint256 _tempLongPosition = pool.longPosition + _position;
+        console.log("_tempLongPosition: ", _tempLongPosition);
         uint256 _tmpLongSize = pool.longSize + _size;
+        console.log("_tmpLongSize: ", _tmpLongSize);
         //calculate normalize long position
         uint256 _normPosition = (_tmpLongSize * WEI6) / price;
+        console.log("_normPosition: ", _normPosition);
         //calculate delta pnl
         uint256 _deltaPNL = _tempLongPosition > _normPosition
             ? _tempLongPosition - _normPosition
             : 0;
+        console.log("_deltaPNL: ", _deltaPNL);
         // if _deltaPNL  > 0 => system is coming to lost
         // inject _deltaPNL into formula
         uint256 _pLiquid = getPoolLiquidity(poolId);
+        console.log("_pLiquid: ", _pLiquid);
         uint256 _openPrice;
         // uint256 _rateLong = _tmpLongSize / $.pools[poolId].shortSize;
         if ($.pools[poolId].shortSize > 0) {
             _openPrice =
                 price +
-                (price * _size * _tmpLongSize) /
+                ((price * _size * _tmpLongSize * $.config.burst) / WEI6) /
                 (_pLiquid + _tmpLongSize - _deltaPNL * price) /
                 $.pools[poolId].shortSize;
         } else {
             _openPrice = (((_pLiquid +
                 _tmpLongSize +
-                _size -
+                (_size * $.config.burst) /
+                WEI6 -
                 _deltaPNL *
                 price) * price) /
                 (_pLiquid + _tmpLongSize - _deltaPNL * price));
         }
+        console.log("_price: ", price);
+        console.log("_openPrice: ", _openPrice);
         uint256 _deltaPrice = _openPrice - price;
-        uint256 _openValue = (_size * (price - _deltaPrice)) / leverage;
+        console.log("_deltaPrice: ", _deltaPrice);
+        uint256 _openValue = ((_size * (price - _deltaPrice)) * WEI6) /
+            price /
+            leverage;
+        console.log("_openValue: ", _openValue);
         uint256 _fee = value - _platformFee - _openValue;
+        console.log("_fee: ", _fee);
         uint256 _openSize = _openValue * leverage;
         uint256 _liqPrice = (price *
             (leverage - (WEI6 * $.config.rake) / 100)) / leverage;
+        console.log("_liqPrice: ", _liqPrice);
         Position memory newPos = Position(
             poolId,
             PositionType.LONG,
@@ -212,13 +233,14 @@ contract X1000V2 is OwnableUpgradeable, Base {
         if ($.pools[poolId].longSize > 0) {
             _openPrice =
                 price -
-                (price * _size * _tmpShortSize) /
+                ((price * _size * _tmpShortSize * $.config.burst) / WEI6) /
                 (_pLiquid + _tmpShortSize - _deltaPNL * price) /
                 $.pools[poolId].longSize;
         } else {
             _openPrice = (((_pLiquid +
                 _tmpShortSize -
-                _size -
+                (_size * $.config.burst) /
+                WEI6 -
                 _deltaPNL *
                 price) * price) /
                 (_pLiquid + _tmpShortSize - _deltaPNL * price));
@@ -226,12 +248,18 @@ contract X1000V2 is OwnableUpgradeable, Base {
         console.log("price: ", price);
         console.log("openPrice: ", _openPrice);
         uint256 _deltaPrice = price - _openPrice;
+        console.log("_deltaPrice: ", _deltaPrice);
         require(price > _deltaPrice, "Invalid Delta Price");
-        uint256 _openValue = (_size * (price - _deltaPrice)) / leverage;
+        uint256 _openValue = (_size * (price - _deltaPrice) * WEI6) /
+            price /
+            leverage;
+        console.log("_openValue: ", _openValue);
         uint256 _fee = value - _platformFee - _openValue;
+        console.log("_fee: ", _fee);
         uint256 _openSize = _openValue * leverage;
         uint256 _liqPrice = (price *
             (leverage + (WEI6 * $.config.rake) / 100)) / leverage;
+        console.log("_liqPrice: ", _liqPrice);
         Position memory newPos = Position(
             poolId,
             PositionType.SHORT,

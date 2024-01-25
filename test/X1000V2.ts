@@ -191,41 +191,65 @@ describe("X1000V2", function () {
       ).wait();
       //open position
       await (
-        await batching.connect(otherAccount).openBatchPosition(
-          [
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("ETH"),
-              value: 10000000,
-              leverage: 100000000,
-              price: 2322420000,
-              isLong: true,
-              plId: 1,
-            },
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("ETH"),
-              value: 10000000,
-              leverage: 1000000000,
-              price: 2215000000,
-              isLong: true,
-              plId: 2,
-            },
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("ETH"),
-              value: 100000000000,
-              leverage: 1000000000,
-              price: 2215940000,
-              isLong: false,
-              plId: 3,
-            },
-          ],
-          {
-            value: 0,
-          }
-        )
+        await x1000V2
+          .connect(otherAccount)
+          .openLongPosition(
+            otherAccount.address,
+            ethers.encodeBytes32String("ETH"),
+            100000000,
+            1000000000,
+            2322420000,
+            1
+          )
       ).wait();
+      await (
+        await x1000V2
+          .connect(otherAccount)
+          .openShortPosition(
+            otherAccount.address,
+            ethers.encodeBytes32String("ETH"),
+            100000000,
+            1000000000,
+            2322420000,
+            1
+          )
+      ).wait();
+      // await (
+      //   await batching.connect(otherAccount).openBatchPosition(
+      //     [
+      //       {
+      //         account: otherAccount.address,
+      //         poolId: ethers.encodeBytes32String("ETH"),
+      //         value: 10000000,
+      //         leverage: 100000000,
+      //         price: 2322420000,
+      //         isLong: true,
+      //         plId: 1,
+      //       },
+      //       {
+      //         account: otherAccount.address,
+      //         poolId: ethers.encodeBytes32String("ETH"),
+      //         value: 10000000,
+      //         leverage: 1000000000,
+      //         price: 2215000000,
+      //         isLong: true,
+      //         plId: 2,
+      //       },
+      //       {
+      //         account: otherAccount.address,
+      //         poolId: ethers.encodeBytes32String("ETH"),
+      //         value: 100000000000,
+      //         leverage: 1000000000,
+      //         price: 2215940000,
+      //         isLong: false,
+      //         plId: 3,
+      //       },
+      //     ],
+      //     {
+      //       value: 0,
+      //     }
+      //   )
+      // ).wait();
       // await (
       //   await batching
       //     .connect(otherAccount)
