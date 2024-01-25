@@ -5,7 +5,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "./X1000.sol";
+import "./X1000V2.sol";
 
 import "hardhat/console.sol";
 
@@ -27,7 +27,7 @@ contract Batching is OwnableUpgradeable, Base {
     bytes32 public constant X1000_BATCHER_CLOSE_ROLE =
         keccak256("X1000_BATCHER_CLOSE_ROLE");
     struct BatchingStorage {
-        X1000 x1000;
+        X1000V2 x1000;
     }
 
     //keccak256(abi.encode(uint256(keccak256("goal3.storage.Batching")) - 1)) & ~bytes32(uint256(0xff))
@@ -35,14 +35,8 @@ contract Batching is OwnableUpgradeable, Base {
         0xc05c5f10a19e05ef10e0a1de72aa3919058141c9f7c29ca3afb777f4a67d5c00;
 
     event OpenPositionFailed(uint256 pLId);
-    event BurnPositions(
-        uint256[] posId,
-        uint64[] lpos,
-        uint64[] spos,
-        uint256[] lvalue,
-        uint256[] svalue
-    );
-    event ClosePositionFailed(uint256 pid);
+    event BurnPositions(uint256[] posId);
+    event ClosePositionFailed(uint256 pid, string reason);
 
     function _getOwnStorage() private pure returns (BatchingStorage storage $) {
         assembly {
@@ -58,7 +52,7 @@ contract Batching is OwnableUpgradeable, Base {
         __Base_init(bookieAddress);
 
         BatchingStorage storage $ = _getOwnStorage();
-        $.x1000 = X1000(x1000ContractAddress);
+        $.x1000 = X1000V2(x1000ContractAddress);
     }
 
     function openBatchPosition(
@@ -69,7 +63,7 @@ contract Batching is OwnableUpgradeable, Base {
         for (uint i = 0; i < positions.length; i++) {
             if (positions[i].isLong) {
                 try
-                    $.x1000.openLongPosition(
+                    $.x1000.openLongPositionV2(
                         positions[i].account,
                         positions[i].poolId,
                         positions[i].value,
@@ -89,7 +83,7 @@ contract Batching is OwnableUpgradeable, Base {
                 }
             } else {
                 try
-                    $.x1000.openShortPosition(
+                    $.x1000.openShortPositionV2(
                         positions[i].account,
                         positions[i].poolId,
                         positions[i].value,
@@ -122,25 +116,11 @@ contract Batching is OwnableUpgradeable, Base {
     ) external onlyRole(X1000_BATCHER_BURN_ROLE) {
         BatchingStorage storage $ = _getOwnStorage();
         uint256[] memory burnedPosId = new uint256[](posIds.length);
-        uint64[] memory lpos = new uint64[](posIds.length);
-        uint64[] memory spos = new uint64[](posIds.length);
-        uint256[] memory lvalue = new uint256[](posIds.length);
-        uint256[] memory svalue = new uint256[](posIds.length);
         for (uint i = 0; i < posIds.length; i++) {
-            (
-                uint256 _posId,
-                uint64 _lpos,
-                uint64 _spos,
-                uint256 _lvalue,
-                uint256 _svalue
-            ) = $.x1000.burnPosition(posIds[i]);
+            uint256 _posId = $.x1000.burnPosition(posIds[i]);
             burnedPosId[i] = _posId;
-            lpos[i] = _lpos;
-            spos[i] = _spos;
-            lvalue[i] = _lvalue;
-            svalue[i] = _svalue;
         }
-        emit BurnPositions(burnedPosId, lpos, spos, lvalue, svalue);
+        emit BurnPositions(burnedPosId);
     }
 
     function closeBatchPosition(
@@ -149,21 +129,20 @@ contract Batching is OwnableUpgradeable, Base {
     ) external onlyRole(X1000_BATCHER_CLOSE_ROLE) {
         BatchingStorage storage $ = _getOwnStorage();
         bool[] memory executionResults = new bool[](posIds.length);
+        string[] memory reasonFaileds = new string[](posIds.length);
         for (uint i = 0; i < posIds.length; i++) {
             try $.x1000.closePosition(posIds[i], prices[i]) {
-                // Thành công, không làm gì cả
                 executionResults[i] = true;
-            } catch Error(string memory) {
-                // Xử lý lỗi nếu cần thiết
+            } catch Error(string memory message) {
                 executionResults[i] = false;
+                reasonFaileds[i] = message;
             } catch (bytes memory) {
-                // Xử lý lỗi nếu cần thiết
                 executionResults[i] = false;
             }
         }
         for (uint i = 0; i < executionResults.length; i++) {
             if (!executionResults[i]) {
-                emit ClosePositionFailed(posIds[i]);
+                emit ClosePositionFailed(posIds[i], reasonFaileds[i]);
             }
         }
     }

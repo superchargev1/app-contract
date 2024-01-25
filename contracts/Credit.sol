@@ -19,7 +19,7 @@ struct CreditConfig {
 
 contract Credit is OwnableUpgradeable, Base {
     uint64 public constant WEI6 = 10 ** 6; // base for calculation
-    bytes32 public constant X1000 = keccak256("X1000");
+    bytes32 public constant X1000V2 = keccak256("X1000V2");
     event Topup(address from, address to, uint256 amount);
     event TopupSystem(address from, uint256 amount);
     event Withdraw(address from, address to, uint256 amount);
@@ -147,7 +147,7 @@ contract Credit is OwnableUpgradeable, Base {
         address account,
         uint256 amount,
         uint256 fee
-    ) external onlyFrom(X1000) {
+    ) external onlyFrom(X1000V2) {
         CreditStorage storage $ = _getOwnStorage();
         $.credits[account] += amount;
         $.fee += fee;
@@ -158,7 +158,7 @@ contract Credit is OwnableUpgradeable, Base {
         address account,
         uint256 amount,
         uint256 fee
-    ) external onlyFrom(X1000) {
+    ) external onlyFrom(X1000V2) {
         CreditStorage storage $ = _getOwnStorage();
         require(amount > fee, "Invalid amount and fee");
         $.credits[account] -= amount;
@@ -172,18 +172,18 @@ contract Credit is OwnableUpgradeable, Base {
     function setCredit(
         address account,
         uint256 amount
-    ) external onlyFrom(X1000) {
+    ) external onlyFrom(X1000V2) {
         CreditStorage storage $ = _getOwnStorage();
         $.credits[account] = amount;
         emit CreditTo(account, amount);
     }
 
-    function setFee(uint256 amount) external onlyFrom(X1000) {
+    function setFee(uint256 amount) external onlyFrom(X1000V2) {
         CreditStorage storage $ = _getOwnStorage();
         $.fee = amount;
     }
 
-    function setPlatform(uint256 amount) external onlyFrom(X1000) {
+    function setPlatform(uint256 amount) external onlyFrom(X1000V2) {
         CreditStorage storage $ = _getOwnStorage();
         $.platform = amount;
     }

@@ -6,11 +6,11 @@ import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 
-describe("X1000", function () {
+describe("X1000V2", function () {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
-  async function deployX1000Fixture() {
+  async function deployX1000V2Fixture() {
     const [owner, otherAccount] = await ethers.getSigners();
     //deploy Bookie
     const Bookie = await ethers.getContractFactory("Bookie", owner);
@@ -39,36 +39,50 @@ describe("X1000", function () {
       }
     );
     //deploy x1000
-    const X1000 = await ethers.getContractFactory("X1000", owner);
-    const x1000 = await upgrades.deployProxy(
-      X1000,
+    const X1000V2 = await ethers.getContractFactory("X1000V2", owner);
+    const x1000V2 = await upgrades.deployProxy(
+      X1000V2,
       [await bookie.getAddress(), await credit.getAddress()],
       {
         initializer: "initialize",
       }
     );
-    await x1000.waitForDeployment();
+    await x1000V2.waitForDeployment();
     //deploy batching
     const Batching = await ethers.getContractFactory("Batching", owner);
     const batching = await upgrades.deployProxy(
       Batching,
-      [await bookie.getAddress(), await x1000.getAddress()],
+      [await bookie.getAddress(), await x1000V2.getAddress()],
       {
         initializer: "initialize",
       }
     );
     await batching.waitForDeployment();
-    return { x1000, bookie, mockUSDC, batching, credit, owner, otherAccount };
+    return { x1000V2, bookie, mockUSDC, batching, credit, owner, otherAccount };
   }
 
   describe("Deployment", function () {
     it("Should deploy success", async function () {
-      const { x1000, bookie, mockUSDC, batching, credit, owner, otherAccount } =
-        await loadFixture(deployX1000Fixture);
+      const {
+        x1000V2,
+        bookie,
+        mockUSDC,
+        batching,
+        credit,
+        owner,
+        otherAccount,
+      } = await loadFixture(deployX1000V2Fixture);
     });
     it("Should topup system success", async function () {
-      const { x1000, bookie, mockUSDC, batching, credit, owner, otherAccount } =
-        await loadFixture(deployX1000Fixture);
+      const {
+        x1000V2,
+        bookie,
+        mockUSDC,
+        batching,
+        credit,
+        owner,
+        otherAccount,
+      } = await loadFixture(deployX1000V2Fixture);
       await (
         await mockUSDC
           .connect(owner)
@@ -84,8 +98,8 @@ describe("X1000", function () {
       expect(await credit.platformCredit()).to.equal(1000000000000);
     });
     it("Should topup user success", async function () {
-      const { x1000, bookie, mockUSDC, credit, owner, otherAccount } =
-        await loadFixture(deployX1000Fixture);
+      const { x1000V2, bookie, mockUSDC, credit, owner, otherAccount } =
+        await loadFixture(deployX1000V2Fixture);
       await (
         await mockUSDC
           .connect(owner)
@@ -114,8 +128,15 @@ describe("X1000", function () {
       expect(await credit.getCredit(otherAccount.address)).to.equal(1000000000);
     });
     it("Should open position success", async function () {
-      const { x1000, bookie, mockUSDC, batching, credit, owner, otherAccount } =
-        await loadFixture(deployX1000Fixture);
+      const {
+        x1000V2,
+        bookie,
+        mockUSDC,
+        batching,
+        credit,
+        owner,
+        otherAccount,
+      } = await loadFixture(deployX1000V2Fixture);
       await (
         await mockUSDC
           .connect(owner)
@@ -149,7 +170,7 @@ describe("X1000", function () {
       //grant role
       const X1000 = ethers.solidityPackedKeccak256(["string"], ["X1000"]);
       const BATCHING = ethers.solidityPackedKeccak256(["string"], ["BATCHING"]);
-      await (await bookie.setAddress(X1000, await x1000.getAddress())).wait();
+      await (await bookie.setAddress(X1000, await x1000V2.getAddress())).wait();
       await (
         await bookie.grantRole(
           ethers.solidityPackedKeccak256(["string"], ["X1000_BATCHER_ROLE"]),
@@ -170,41 +191,71 @@ describe("X1000", function () {
       ).wait();
       //open position
       await (
-        await batching.connect(otherAccount).openBatchPosition(
-          [
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("ETH"),
-              value: 10000000,
-              leverage: 100000000,
-              price: 2322420000,
-              isLong: true,
-              plId: 1,
-            },
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("ETH"),
-              value: 10000000,
-              leverage: 1000000000,
-              price: 2215000000,
-              isLong: true,
-              plId: 2,
-            },
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("ETH"),
-              value: 100000000000,
-              leverage: 1000000000,
-              price: 2215940000,
-              isLong: false,
-              plId: 3,
-            },
-          ],
-          {
-            value: 0,
-          }
-        )
+        await x1000V2
+          .connect(otherAccount)
+          .openLongPositionV2(
+            otherAccount.address,
+            ethers.encodeBytes32String("ETH"),
+            100000000,
+            1000000000,
+            2322420000,
+            1
+          )
       ).wait();
+      await (
+        await x1000V2
+          .connect(otherAccount)
+          .openShortPositionV2(
+            otherAccount.address,
+            ethers.encodeBytes32String("ETH"),
+            100000000,
+            1000000000,
+            2322420000,
+            1
+          )
+      ).wait();
+      await (
+        await x1000V2.connect(otherAccount).closePosition(1, 2320420000)
+      ).wait();
+      await (
+        await x1000V2.connect(otherAccount).closePosition(2, 2323420000)
+      ).wait();
+      // await (
+      //   await batching.connect(otherAccount).openBatchPosition(
+      //     [
+      //       {
+      //         account: otherAccount.address,
+      //         poolId: ethers.encodeBytes32String("ETH"),
+      //         value: 10000000,
+      //         leverage: 100000000,
+      //         price: 2322420000,
+      //         isLong: true,
+      //         plId: 1,
+      //       },
+      //       {
+      //         account: otherAccount.address,
+      //         poolId: ethers.encodeBytes32String("ETH"),
+      //         value: 10000000,
+      //         leverage: 1000000000,
+      //         price: 2215000000,
+      //         isLong: true,
+      //         plId: 2,
+      //       },
+      //       {
+      //         account: otherAccount.address,
+      //         poolId: ethers.encodeBytes32String("ETH"),
+      //         value: 100000000000,
+      //         leverage: 1000000000,
+      //         price: 2215940000,
+      //         isLong: false,
+      //         plId: 3,
+      //       },
+      //     ],
+      //     {
+      //       value: 0,
+      //     }
+      //   )
+      // ).wait();
       // await (
       //   await batching
       //     .connect(otherAccount)
