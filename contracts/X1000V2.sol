@@ -65,6 +65,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 burnPrice,
         uint256 expectPrice,
         uint256 openFee,
+        uint256 size,
         uint256 plId
     );
 
@@ -357,7 +358,8 @@ contract X1000V2 is OwnableUpgradeable, Base {
         $.lastPosId++;
         $.positions[$.lastPosId] = newPos;
         pool.longSize += _openSize;
-        pool.longPosition += (_openSize * WEI6) / price;
+        uint256 _pos = (_openSize * WEI6) / price;
+        pool.longPosition += _pos;
         $.credit.transferFrom(account, value, _platformFee);
         emit OpenPosition(
             $.lastPosId,
@@ -368,6 +370,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
             _liqPrice,
             _expectPrice,
             _platformFee,
+            _pos,
             plId
         );
     }
@@ -421,7 +424,8 @@ contract X1000V2 is OwnableUpgradeable, Base {
         $.lastPosId++;
         $.positions[$.lastPosId] = newPos;
         pool.shortSize += _openSize;
-        pool.shortPosition += (_openSize * WEI6) / price;
+        uint256 _pos = (_openSize * WEI6) / price;
+        pool.shortPosition += _pos;
         $.credit.transferFrom(account, value, _platformFee);
         emit OpenPosition(
             $.lastPosId,
@@ -432,6 +436,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
             _liqPrice,
             _expectPrice,
             _platformFee,
+            _pos,
             plId
         );
     }
