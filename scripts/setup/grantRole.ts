@@ -39,6 +39,7 @@ async function main() {
   await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher)).wait();
   await (await bookie.grantRole(X1000_BATCHER_BURN_ROLE, batcher)).wait();
   await (await bookie.grantRole(X1000_BATCHER_CLOSE_ROLE, batcher)).wait();
+  console.log("run here 123");
   await (
     await bookie.setAddress(BATCHING, contracts?.[networkName]?.["Batching"])
   ).wait();

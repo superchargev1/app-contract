@@ -28,6 +28,12 @@ async function main() {
     creditArtifact.interface,
     deployer
   );
+  //setTransferable
+  await (
+    await mockUSDC
+      .connect(deployer)
+      .setTransferable(await credit.getAddress(), true)
+  ).wait();
   await (
     await mockUSDC.connect(deployer).approve(await credit.getAddress(), funding)
   ).wait();
