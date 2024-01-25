@@ -17,6 +17,7 @@ struct OpenPositionParams {
     uint256 price;
     bool isLong;
     uint256 plId;
+    bytes signature;
 }
 
 contract Batching is OwnableUpgradeable, Base {
@@ -70,7 +71,8 @@ contract Batching is OwnableUpgradeable, Base {
                         positions[i].value,
                         positions[i].leverage,
                         positions[i].price,
-                        positions[i].plId
+                        positions[i].plId,
+                        positions[i].signature
                     )
                 {
                     // Thành công, không làm gì cả

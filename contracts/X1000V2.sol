@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "./Credit.sol";
 import "./libs/Base.sol";
@@ -18,26 +19,14 @@ struct Config {
     uint64 profitOverExpectValue;
 }
 
-enum PositionType {
-    LONG,
-    SHORT
-}
-
-enum PositionStatus {
-    OPEN,
-    CLOSED,
-    BURNT
-}
-
 struct Position {
     bytes32 poolId;
-    PositionType ptype;
-    PositionStatus status;
+    uint8 ptype;
+    uint8 status;
     uint256 amount;
     uint256 leverage;
     uint256 size;
     uint88 openPrice;
-    uint88 initPrice;
     uint88 burnPrice;
     uint88 closePrice;
     uint88 expectPrice;
@@ -53,8 +42,20 @@ struct Pool {
 }
 
 contract X1000V2 is OwnableUpgradeable, Base {
+    using ECDSA for bytes32;
+    // Position types
+    uint8 public constant POSITION_TYPE_LONG = 1;
+    uint8 public constant POSITION_TYPE_SHORT = 2;
+
+    // Position status
+    uint8 public constant POSITION_STATUS_OPEN = 1;
+    uint8 public constant POSITION_STATUS_CLOSED = 2;
+    uint8 public constant POSITION_STATUS_BURNT = 3;
+
     uint256 public constant WEI6 = 10 ** 6;
     bytes32 public constant BATCHING = keccak256("BATCHING");
+    bytes32 public constant X1000_BATCHER_ROLE =
+        keccak256("X1000_BATCHER_ROLE");
 
     event OpenPosition(
         uint256 pid,
@@ -84,9 +85,9 @@ contract X1000V2 is OwnableUpgradeable, Base {
         mapping(bytes32 => Pool) pools;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("goal3.storage.X1000V2")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("goal3.storage.X1000V4")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant X1000V2StorageLocation =
-        0xe7b4aea9018d8efb6fc2599a57ab794229323046c2fee1f29dc7eeddeb660700;
+        0x005fcd49fdbf6f43ec7feab828b4f7d0f873044ab6296aaa7ce86a05d55b6700;
 
     function _getOwnStorage() private pure returns (X1000V2Storage storage $) {
         assembly {
@@ -127,185 +128,6 @@ contract X1000V2 is OwnableUpgradeable, Base {
         return (value * $.config.platformFeePercent) / 10000;
     }
 
-    // function openLongPosition(
-    //     address account,
-    //     bytes32 poolId,
-    //     uint256 value,
-    //     uint256 leverage,
-    //     uint256 price,
-    //     uint256 plId
-    // ) external {
-    //     require(
-    //         leverage >= 2 * WEI6 && leverage <= 1000 * WEI6,
-    //         "Invalid leverage"
-    //     );
-    //     require(value > 0, "Invalid Value");
-    //     X1000V2Storage storage $ = _getOwnStorage();
-    //     Pool storage pool = $.pools[poolId];
-    //     require($.credit.getCredit(account) >= value, "Not Enough Credit");
-    //     require(pool.level > 0, "Invalid Pool");
-
-    //     uint256 _size = (value * leverage) / WEI6;
-    //     console.log("_size: ", _size);
-    //     uint256 _platformFee = getPlatformFee(_size);
-    //     console.log("_platformFee: ", _platformFee);
-    //     require(_platformFee < value, "Invalid Platform Fee");
-    //     _size = ((value - _platformFee) * leverage) / WEI6;
-    //     console.log("_size after inject fee: ", _size);
-    //     uint256 _position = (_size * WEI6) / price;
-    //     console.log("_position: ", _position);
-    //     //calculate total long position
-    //     uint256 _tempLongPosition = pool.longPosition + _position;
-    //     console.log("_tempLongPosition: ", _tempLongPosition);
-    //     uint256 _tmpLongSize = pool.longSize + _size;
-    //     console.log("_tmpLongSize: ", _tmpLongSize);
-    //     //calculate normalize long position
-    //     uint256 _normPosition = (_tmpLongSize * WEI6) / price;
-    //     console.log("_normPosition: ", _normPosition);
-    //     //calculate delta pnl
-    //     uint256 _deltaPNL = _tempLongPosition > _normPosition
-    //         ? _tempLongPosition - _normPosition
-    //         : 0;
-    //     console.log("_deltaPNL: ", _deltaPNL);
-    //     // if _deltaPNL  > 0 => system is coming to lost
-    //     // inject _deltaPNL into formula
-    //     uint256 _pLiquid = getPoolLiquidity(poolId);
-    //     console.log("_pLiquid: ", _pLiquid);
-    //     uint256 _openPrice;
-    //     // uint256 _rateLong = _tmpLongSize / $.pools[poolId].shortSize;
-    //     if ($.pools[poolId].shortSize > 0) {
-    //         _openPrice =
-    //             price +
-    //             ((price * _size * _tmpLongSize * $.config.burst) / WEI6) /
-    //             (_pLiquid + _tmpLongSize - _deltaPNL * price) /
-    //             $.pools[poolId].shortSize;
-    //     } else {
-    //         _openPrice = (((_pLiquid +
-    //             _tmpLongSize +
-    //             (_size * $.config.burst) /
-    //             WEI6 -
-    //             _deltaPNL *
-    //             price) * price) /
-    //             (_pLiquid + _tmpLongSize - _deltaPNL * price));
-    //     }
-    //     console.log("_price: ", price);
-    //     console.log("_openPrice: ", _openPrice);
-    //     uint256 _deltaPrice = _openPrice - price;
-    //     console.log("_deltaPrice: ", _deltaPrice);
-    //     uint256 _openValue = ((_size * (price - _deltaPrice)) * WEI6) /
-    //         price /
-    //         leverage;
-    //     console.log("_openValue: ", _openValue);
-    //     uint256 _fee = value - _platformFee - _openValue;
-    //     console.log("_fee: ", _fee);
-    //     uint256 _openSize = _openValue * leverage;
-    //     uint256 _liqPrice = (price *
-    //         (leverage - (WEI6 * $.config.rake) / 100)) / leverage;
-    //     console.log("_liqPrice: ", _liqPrice);
-    //     Position memory newPos = Position(
-    //         poolId,
-    //         PositionType.LONG,
-    //         PositionStatus.OPEN,
-    //         _openValue,
-    //         leverage,
-    //         _openSize,
-    //         uint88(price),
-    //         uint88(price),
-    //         uint88(_liqPrice),
-    //         0,
-    //         account
-    //     );
-    //     $.lastPosId++;
-    //     $.positions[$.lastPosId] = newPos;
-    //     pool.longSize = _tmpLongSize;
-    //     pool.longPosition = _tempLongPosition;
-    //     $.credit.transferFrom(account, value, _fee + _platformFee);
-    // }
-
-    // function openShortPosition(
-    //     address account,
-    //     bytes32 poolId,
-    //     uint256 value,
-    //     uint256 leverage,
-    //     uint256 price,
-    //     uint256 plId
-    // ) external {
-    //     require(
-    //         leverage >= 2 * WEI6 && leverage <= 1000 * WEI6,
-    //         "Invalid leverage"
-    //     );
-    //     require(value > 0, "Invalid Value");
-    //     X1000V2Storage storage $ = _getOwnStorage();
-    //     Pool storage pool = $.pools[poolId];
-    //     require($.credit.getCredit(account) >= value, "Not Enough Credit");
-    //     require(pool.level > 0, "Invalid Pool");
-    //     uint256 _size = (value * leverage) / WEI6;
-    //     uint256 _platformFee = getPlatformFee(_size);
-    //     require(_platformFee < value, "Invalid Platform Fee");
-    //     _size = ((value - _platformFee) * leverage) / WEI6;
-    //     uint256 _position = (_size * WEI6) / price;
-    //     //calculate total short position
-    //     uint256 _tempShortPosition = pool.shortPosition + _position;
-    //     uint256 _tmpShortSize = pool.shortSize + _size;
-    //     //calculate normalize long position
-    //     uint256 _normPosition = (_tmpShortSize * WEI6) / price;
-    //     //calculate delta pnl
-    //     uint256 _deltaPNL = _tempShortPosition < _normPosition
-    //         ? _normPosition - _tempShortPosition
-    //         : 0;
-    //     uint256 _pLiquid = getPoolLiquidity(poolId);
-    //     uint256 _openPrice;
-    //     // uint256 _rateShort = _tmpShortSize / $.pools[poolId].longSize;
-    //     if ($.pools[poolId].longSize > 0) {
-    //         _openPrice =
-    //             price -
-    //             ((price * _size * _tmpShortSize * $.config.burst) / WEI6) /
-    //             (_pLiquid + _tmpShortSize - _deltaPNL * price) /
-    //             $.pools[poolId].longSize;
-    //     } else {
-    //         _openPrice = (((_pLiquid +
-    //             _tmpShortSize -
-    //             (_size * $.config.burst) /
-    //             WEI6 -
-    //             _deltaPNL *
-    //             price) * price) /
-    //             (_pLiquid + _tmpShortSize - _deltaPNL * price));
-    //     }
-    //     console.log("price: ", price);
-    //     console.log("openPrice: ", _openPrice);
-    //     uint256 _deltaPrice = price - _openPrice;
-    //     console.log("_deltaPrice: ", _deltaPrice);
-    //     require(price > _deltaPrice, "Invalid Delta Price");
-    //     uint256 _openValue = (_size * (price - _deltaPrice) * WEI6) /
-    //         price /
-    //         leverage;
-    //     console.log("_openValue: ", _openValue);
-    //     uint256 _fee = value - _platformFee - _openValue;
-    //     console.log("_fee: ", _fee);
-    //     uint256 _openSize = _openValue * leverage;
-    //     uint256 _liqPrice = (price *
-    //         (leverage + (WEI6 * $.config.rake) / 100)) / leverage;
-    //     console.log("_liqPrice: ", _liqPrice);
-    //     Position memory newPos = Position(
-    //         poolId,
-    //         PositionType.SHORT,
-    //         PositionStatus.OPEN,
-    //         _openValue,
-    //         leverage,
-    //         _openSize,
-    //         uint88(price),
-    //         uint88(price),
-    //         uint88(_liqPrice),
-    //         0,
-    //         account
-    //     );
-    //     $.lastPosId++;
-    //     $.positions[$.lastPosId] = newPos;
-    //     pool.shortSize = _tmpShortSize;
-    //     pool.shortPosition = _tempShortPosition;
-    //     $.credit.transferFrom(account, value, _fee + _platformFee);
-    // }
-
     //////////////////////////////////////////
     /////////////// V2 //////////////////////
     ////////////////////////////////////////
@@ -316,8 +138,17 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 value,
         uint256 leverage,
         uint256 price,
-        uint256 plId
-    ) public onlyFrom(BATCHING) {
+        uint256 plId,
+        bytes memory signature
+    ) external {
+        bytes32 hash = keccak256(abi.encodePacked(address(this), plId));
+        address recoverBooker = MessageHashUtils
+            .toEthSignedMessageHash(hash)
+            .recover(signature);
+        require(
+            bookie.hasRole(X1000_BATCHER_ROLE, recoverBooker),
+            "Invalid signature"
+        );
         require(
             leverage >= 2 * WEI6 && leverage <= 1000 * WEI6,
             "Invalid leverage"
@@ -330,10 +161,10 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 _size = (value * leverage) / WEI6;
         uint256 _platformFee = getPlatformFee(_size);
         require(_platformFee < value, "Invalid Platform Fee");
+        // revert("run here 1234");
         uint256 _openValue = value - _platformFee;
         uint256 _openSize = (_openValue * leverage) / WEI6;
         uint256 _expectPrice = _getLongExpectPrice(
-            account,
             poolId,
             value,
             leverage,
@@ -343,23 +174,34 @@ contract X1000V2 is OwnableUpgradeable, Base {
             (leverage - (WEI6 * $.config.rake) / 100)) / leverage;
         Position memory newPos = Position(
             poolId,
-            PositionType.LONG,
-            PositionStatus.OPEN,
+            POSITION_TYPE_LONG,
+            POSITION_STATUS_OPEN,
             _openValue,
             leverage,
             _openSize,
             uint88(price),
-            uint88(price),
             uint88(_liqPrice),
-            0,
+            uint88(0),
             uint88(_expectPrice),
             account
         );
         $.lastPosId++;
+        Position storage pos = $.positions[$.lastPosId];
+        pos.amount = newPos.amount;
+        pos.burnPrice = newPos.burnPrice;
+        pos.closePrice = newPos.closePrice;
+        pos.expectPrice = newPos.expectPrice;
+        pos.leverage = newPos.leverage;
+        pos.openPrice = newPos.openPrice;
+        pos.poolId = newPos.poolId;
+        pos.ptype = newPos.ptype;
+        pos.size = newPos.size;
+        pos.status = newPos.status;
+        pos.user = newPos.user;
         $.positions[$.lastPosId] = newPos;
         pool.longSize += _openSize;
-        uint256 _pos = (_openSize * WEI6) / price;
-        pool.longPosition += _pos;
+        // revert("run here 555");
+        pool.longPosition += (_openSize * WEI6) / price;
         $.credit.transferFrom(account, value, _platformFee);
         emit OpenPosition(
             $.lastPosId,
@@ -370,7 +212,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
             _liqPrice,
             _expectPrice,
             _platformFee,
-            _pos,
+            (_openSize * WEI6) / price,
             plId
         );
     }
@@ -399,7 +241,6 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 _openSize = (_openValue * leverage) / WEI6;
         //calculate gap price
         uint256 _expectPrice = _getShortExpectPrice(
-            account,
             poolId,
             value,
             leverage,
@@ -409,15 +250,14 @@ contract X1000V2 is OwnableUpgradeable, Base {
             (leverage + (WEI6 * $.config.rake) / 100)) / leverage;
         Position memory newPos = Position(
             poolId,
-            PositionType.SHORT,
-            PositionStatus.OPEN,
+            POSITION_TYPE_SHORT,
+            POSITION_STATUS_OPEN,
             _openValue,
             leverage,
             _openSize,
             uint88(price),
-            uint88(price),
             uint88(_liqPrice),
-            0,
+            uint88(0),
             uint88(_expectPrice),
             account
         );
@@ -448,17 +288,17 @@ contract X1000V2 is OwnableUpgradeable, Base {
         X1000V2Storage storage $ = _getOwnStorage();
         Position storage pos = $.positions[posId];
         Pool storage pool = $.pools[pos.poolId];
-        require(pos.status == PositionStatus.OPEN, "Invalid Position Status");
+        require(pos.status == POSITION_STATUS_OPEN, "Invalid Position Status");
         uint256 _size = (pos.amount * pos.leverage) / WEI6;
         //calculate position pnl
-        uint256 _pnl = pos.ptype == PositionType.LONG
+        uint256 _pnl = pos.ptype == POSITION_TYPE_LONG
             ? price > pos.openPrice
                 ? (_size * price - _size * pos.openPrice) / pos.openPrice
                 : 0
             : price < pos.openPrice
             ? (_size * pos.openPrice - _size * price) / pos.openPrice
             : 0;
-        uint256 _pnlGap = pos.ptype == PositionType.LONG
+        uint256 _pnlGap = pos.ptype == POSITION_TYPE_LONG
             ? pos.expectPrice - pos.openPrice
             : pos.openPrice - pos.expectPrice;
         uint256 _returnValue;
@@ -481,9 +321,9 @@ contract X1000V2 is OwnableUpgradeable, Base {
             _returnValue = pos.amount + _pnl - _profitFee;
             console.log("_returnValue: ", _returnValue);
             //update position status
-            pos.status = PositionStatus.CLOSED;
+            pos.status = POSITION_STATUS_CLOSED;
             pos.closePrice = uint88(price);
-            if (pos.ptype == PositionType.LONG) {
+            if (pos.ptype == POSITION_TYPE_LONG) {
                 pool.longSize -= pos.size;
                 pool.longPosition -= (pos.size * WEI6) / pos.openPrice;
             } else {
@@ -492,7 +332,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
             }
             $.credit.transfer(pos.user, _returnValue, _profitFee);
         } else {
-            _returnValue = pos.ptype == PositionType.LONG
+            _returnValue = pos.ptype == POSITION_TYPE_LONG
                 ? pos.amount -
                     ((pos.openPrice - price) * pos.size) /
                     pos.openPrice
@@ -500,7 +340,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
                     ((price - pos.openPrice) * pos.size) /
                     pos.openPrice;
             console.log("_returnValue: ", _returnValue);
-            if (pos.ptype == PositionType.LONG) {
+            if (pos.ptype == POSITION_TYPE_LONG) {
                 pool.longSize -= pos.size;
                 pool.longPosition -= (pos.size * WEI6) / pos.openPrice;
             } else {
@@ -517,12 +357,12 @@ contract X1000V2 is OwnableUpgradeable, Base {
     ) public onlyFrom(BATCHING) returns (uint256) {
         X1000V2Storage storage $ = _getOwnStorage();
         if (
-            $.positions[posId].status != PositionStatus.CLOSED &&
-            $.positions[posId].status != PositionStatus.BURNT
+            $.positions[posId].status != POSITION_STATUS_CLOSED &&
+            $.positions[posId].status != POSITION_STATUS_BURNT
         ) {
-            $.positions[posId].status = PositionStatus.BURNT;
+            $.positions[posId].status = POSITION_STATUS_BURNT;
             Position storage pos = $.positions[posId];
-            if (pos.ptype == PositionType.LONG) {
+            if (pos.ptype == POSITION_TYPE_LONG) {
                 $.pools[pos.poolId].longSize -= pos.size;
                 $.pools[pos.poolId].longPosition -=
                     (pos.size * WEI6) /
@@ -551,26 +391,23 @@ contract X1000V2 is OwnableUpgradeable, Base {
     /////////////// PRIVATE //////////////////////
     ////////////////////////////////////////
     function _getLongExpectPrice(
-        address account,
         bytes32 poolId,
         uint256 value,
         uint256 leverage,
         uint256 price
-    ) private returns (uint256) {
+    ) internal returns (uint256) {
         X1000V2Storage storage $ = _getOwnStorage();
-        Pool storage pool = $.pools[poolId];
         uint256 _size = (value * leverage) / WEI6;
         uint256 _platformFee = getPlatformFee(_size);
         _size = ((value - _platformFee) * leverage) / WEI6;
-        uint256 _position = (_size * WEI6) / price;
         //calculate total long position
-        uint256 _tempLongPosition = pool.longPosition + _position;
-        uint256 _tmpLongSize = pool.longSize + _size;
-        //calculate normalize long position
-        uint256 _normPosition = (_tmpLongSize * WEI6) / price;
+        uint256 _tempLongPosition = $.pools[poolId].longPosition +
+            (_size * WEI6) /
+            price;
+        uint256 _tmpLongSize = $.pools[poolId].longSize + _size;
         //calculate delta pnl
-        uint256 _deltaPNL = _tempLongPosition > _normPosition
-            ? _tempLongPosition - _normPosition
+        uint256 _deltaPNL = _tempLongPosition > (_tmpLongSize * WEI6) / price
+            ? _tempLongPosition - (_tmpLongSize * WEI6) / price
             : 0;
         // if _deltaPNL  > 0 => system is coming to lost
         // inject _deltaPNL into formula
@@ -596,7 +433,6 @@ contract X1000V2 is OwnableUpgradeable, Base {
     }
 
     function _getShortExpectPrice(
-        address account,
         bytes32 poolId,
         uint256 value,
         uint256 leverage,
@@ -643,10 +479,10 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 expectPrice,
         uint256 pnl,
         uint256 pnlGap,
-        PositionType ptype
+        uint8 ptype
     ) private returns (uint256) {
         X1000V2Storage storage $ = _getOwnStorage();
-        if (ptype == PositionType.LONG) {
+        if (ptype == POSITION_TYPE_LONG) {
             if (closePrice < expectPrice) {
                 return ($.config.profitUnderExpectValue * pnl) / 100;
             } else {
@@ -672,4 +508,39 @@ contract X1000V2 is OwnableUpgradeable, Base {
             }
         }
     }
+
+    // function getPnL(
+    //     uint256 closePrice,
+    //     uint256 expectPrice,
+    //     uint256 pnl,
+    //     uint256 pnlGap,
+    //     PositionType ptype
+    // ) external view returns (uint256 pnl) {
+    //     X1000V2Storage storage $ = _getOwnStorage();
+    //     if (ptype == POSITION_TYPE_LONG) {
+    //         if (closePrice < expectPrice) {
+    //             return ($.config.profitUnderExpectValue * pnl) / 100;
+    //         } else {
+    //             console.log("run here 123");
+    //             uint256 _fee = ($.config.profitUnderExpectValue * pnlGap) /
+    //                 100 +
+    //                 ($.config.profitOverExpectValue * (pnl - pnlGap)) /
+    //                 100;
+    //             console.log("_fee: ", _fee);
+    //             return _fee;
+    //         }
+    //     } else {
+    //         if (closePrice > expectPrice) {
+    //             console.log("run here 234");
+    //             return ($.config.profitUnderExpectValue * pnl) / 100;
+    //         } else {
+    //             uint256 _fee = ($.config.profitUnderExpectValue * pnlGap) /
+    //                 100 +
+    //                 ($.config.profitOverExpectValue * (pnl - pnlGap)) /
+    //                 100;
+    //             console.log("_fee: ", _fee);
+    //             return _fee;
+    //         }
+    //     }
+    // }
 }

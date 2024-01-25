@@ -7,9 +7,20 @@ async function main() {
   const FactoryName = "Batching";
 
   const contracts = getContracts();
+  console.log("network.name: ", network.name);
+  if (
+    !contracts?.[networkName]["X1000V2"] ||
+    !contracts?.[networkName]["Bookie"]
+  ) {
+    console.log("Deploy bookie and X1000V2 first");
+    return;
+  }
   let proxy: any = contracts?.[networkName]?.[FactoryName];
   if (!proxy) {
-    console.log("Deploying contract");
+    console.log(
+      "Deploying contract Batching: ",
+      contracts?.[networkName]["X1000V2"]
+    );
     const Factory = await ethers.getContractFactory(FactoryName, deployer);
     const contract = await upgrades.deployProxy(
       Factory,
