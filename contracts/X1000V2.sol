@@ -116,14 +116,14 @@ contract X1000V2 is OwnableUpgradeable, Base {
         $.credit = Credit(creditContractAddress);
     }
 
-    function getPoolLiquidity(bytes32 poolId) internal returns (uint256) {
+    function getPoolLiquidity(bytes32 poolId) private view returns (uint256) {
         X1000V2Storage storage $ = _getOwnStorage();
         return
             ($.credit.platformCredit() / $.pools[poolId].level) *
             $.config.leverage;
     }
 
-    function getPlatformFee(uint256 value) internal returns (uint256) {
+    function getPlatformFee(uint256 value) private view returns (uint256) {
         X1000V2Storage storage $ = _getOwnStorage();
         return (value * $.config.platformFeePercent) / 10000;
     }
@@ -138,17 +138,16 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 value,
         uint256 leverage,
         uint256 price,
-        uint256 plId,
-        bytes memory signature
-    ) external {
-        bytes32 hash = keccak256(abi.encodePacked(address(this), plId));
-        address recoverBooker = MessageHashUtils
-            .toEthSignedMessageHash(hash)
-            .recover(signature);
-        require(
-            bookie.hasRole(X1000_BATCHER_ROLE, recoverBooker),
-            "Invalid signature"
-        );
+        uint256 plId
+    ) public onlyFrom(BATCHING) {
+        // bytes32 hash = keccak256(abi.encodePacked(address(this), plId));
+        // address recoverBooker = MessageHashUtils
+        //     .toEthSignedMessageHash(hash)
+        //     .recover(signature);
+        // require(
+        //     bookie.hasRole(X1000_BATCHER_ROLE, recoverBooker),
+        //     "Invalid signature"
+        // );
         require(
             leverage >= 2 * WEI6 && leverage <= 1000 * WEI6,
             "Invalid leverage"
@@ -186,18 +185,6 @@ contract X1000V2 is OwnableUpgradeable, Base {
             account
         );
         $.lastPosId++;
-        Position storage pos = $.positions[$.lastPosId];
-        pos.amount = newPos.amount;
-        pos.burnPrice = newPos.burnPrice;
-        pos.closePrice = newPos.closePrice;
-        pos.expectPrice = newPos.expectPrice;
-        pos.leverage = newPos.leverage;
-        pos.openPrice = newPos.openPrice;
-        pos.poolId = newPos.poolId;
-        pos.ptype = newPos.ptype;
-        pos.size = newPos.size;
-        pos.status = newPos.status;
-        pos.user = newPos.user;
         $.positions[$.lastPosId] = newPos;
         pool.longSize += _openSize;
         // revert("run here 555");
@@ -395,7 +382,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 value,
         uint256 leverage,
         uint256 price
-    ) internal returns (uint256) {
+    ) internal view returns (uint256) {
         X1000V2Storage storage $ = _getOwnStorage();
         uint256 _size = (value * leverage) / WEI6;
         uint256 _platformFee = getPlatformFee(_size);

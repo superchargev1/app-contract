@@ -35,11 +35,21 @@ async function main() {
   //   ).wait();
   //   console.log("txh: ", txh);
   const hash = keccak256(
-    solidityPacked(["address", "uint256"], [await x1000V2.getAddress(), 3])
+    solidityPacked(["address", "uint256"], [await x1000V2.getAddress(), 2])
   );
   const message = getBytes(hash);
   const signature = await batcher.signMessage(message);
-
+  console.log("data: ", {
+    account: "0xf9F689367990f981BCD267FB1A4c45f63B6Bd7b1",
+    poolId:
+      "0x4554480000000000000000000000000000000000000000000000000000000000",
+    value: 10000000,
+    leverage: 100000000,
+    price: 2208480000,
+    isLong: true,
+    plId: 2,
+    signature,
+  });
   const txh = await (
     await batch.openBatchPosition(
       [
@@ -51,12 +61,13 @@ async function main() {
           leverage: 100000000,
           price: 2208480000,
           isLong: true,
-          plId: 3,
+          plId: 2,
           signature,
         },
       ],
       {
         value: 0,
+        gasPrice: (await provider.getFeeData()).gasPrice,
       }
     )
   ).wait();
