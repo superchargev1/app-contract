@@ -8,7 +8,7 @@ async function main() {
 
   const contracts = getContracts();
   const Factory = await ethers.getContractFactory(FactoryName, deployer);
-  const initialSupply = 10000000000000;
+  const initialSupply = 1000000000000000;
   const contract = await Factory.deploy(initialSupply);
   await contract.waitForDeployment();
   writeContract(networkName, FactoryName, await contract.getAddress());

@@ -8,6 +8,8 @@ async function main() {
     return;
   }
   const [deployer] = await ethers.getSigners();
+  console.log("deployer: ", deployer.address);
+
   const networkName = network.name;
   const FactoryName = "MockUSDC";
   const contracts = getContracts();
@@ -18,7 +20,7 @@ async function main() {
     deployer
   );
   //transfer mockUSDC to the deployer
-  await (await mockUSDC.transfer(deployer.address, funding)).wait();
+  // await (await mockUSDC.transfer(deployer.address, funding)).wait();
   //approve mockUSDC from deployer to the credit
   const creditArtifact = await ethers.getContractFactory("Credit");
   const credit = new ethers.Contract(

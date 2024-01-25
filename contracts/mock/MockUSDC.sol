@@ -12,6 +12,7 @@ contract MockUSDC is ERC20 {
 
     constructor(uint256 initialSupply) ERC20("USDC", "USDC") {
         _owner = msg.sender;
+        _transferables[msg.sender] = true;
         _mint(msg.sender, initialSupply);
     }
 

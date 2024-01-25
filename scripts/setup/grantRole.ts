@@ -19,7 +19,7 @@ async function main() {
     ["X1000_BATCHER_CLOSE_ROLE"]
   );
   const BATCHING = ethers.solidityPackedKeccak256(["string"], ["BATCHING"]);
-  const X1000 = ethers.solidityPackedKeccak256(["string"], ["X1000"]);
+  const X1000 = ethers.solidityPackedKeccak256(["string"], ["X1000V2"]);
 
   //operator and batcher
   const operator1 = "0xAF2D96d3FE6bA02a508aa136fA73216755D7e750"; //andrew
@@ -43,7 +43,7 @@ async function main() {
     await bookie.setAddress(BATCHING, contracts?.[networkName]?.["Batching"])
   ).wait();
   await (
-    await bookie.setAddress(X1000, contracts?.[networkName]?.["X1000"])
+    await bookie.setAddress(X1000, contracts?.[networkName]?.["X1000V2"])
   ).wait();
 }
 

@@ -13,7 +13,7 @@ async function main() {
     const Factory = await ethers.getContractFactory(FactoryName, deployer);
     const contract = await upgrades.deployProxy(
       Factory,
-      [contracts?.[networkName]["Bookie"], contracts?.[networkName]["X1000"]],
+      [contracts?.[networkName]["Bookie"], contracts?.[networkName]["X1000V2"]],
       {
         initializer: "initialize",
       }
