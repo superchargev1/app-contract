@@ -64,10 +64,16 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 openPrice,
         uint256 burnPrice,
         uint256 expectPrice,
+        uint256 openFee,
         uint256 plId
     );
 
-    event ClosePosition(uint256 pid, uint256 closePrice);
+    event ClosePosition(
+        uint256 pid,
+        uint256 returnAmount,
+        uint256 feeAmount,
+        uint256 closePrice
+    );
 
     struct X1000V2Storage {
         Config config;
@@ -361,6 +367,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
             price,
             _liqPrice,
             _expectPrice,
+            _platformFee,
             plId
         );
     }
@@ -424,6 +431,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
             price,
             _liqPrice,
             _expectPrice,
+            _platformFee,
             plId
         );
     }
@@ -448,13 +456,15 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 _pnlGap = pos.ptype == PositionType.LONG
             ? pos.expectPrice - pos.openPrice
             : pos.openPrice - pos.expectPrice;
+        uint256 _returnValue;
+        uint256 _profitFee;
         if (_pnl > 0) {
             //calculate fee
             console.log("_pnl: ", _pnl);
             console.log("price: ", price);
             console.log("openPrice: ", pos.openPrice);
             console.log("expectPrice: ", pos.expectPrice);
-            uint256 _profitFee = _getProfitFee(
+            _profitFee = _getProfitFee(
                 price,
                 pos.expectPrice,
                 _pnl,
@@ -463,7 +473,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
             );
             console.log("_profitFee: ", _profitFee);
             //caculate returnValue
-            uint256 _returnValue = pos.amount + _pnl - _profitFee;
+            _returnValue = pos.amount + _pnl - _profitFee;
             console.log("_returnValue: ", _returnValue);
             //update position status
             pos.status = PositionStatus.CLOSED;
@@ -477,7 +487,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
             }
             $.credit.transfer(pos.user, _returnValue, _profitFee);
         } else {
-            uint256 _returnValue = pos.ptype == PositionType.LONG
+            _returnValue = pos.ptype == PositionType.LONG
                 ? pos.amount -
                     ((pos.openPrice - price) * pos.size) /
                     pos.openPrice
@@ -494,7 +504,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
             }
             $.credit.transfer(pos.user, _returnValue, 0);
         }
-        emit ClosePosition(posId, price);
+        emit ClosePosition(posId, _returnValue, _profitFee, price);
     }
 
     function burnPosition(
