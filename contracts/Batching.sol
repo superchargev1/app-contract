@@ -34,7 +34,7 @@ contract Batching is OwnableUpgradeable, Base {
     bytes32 private constant BatchingStorageLocation =
         0xc05c5f10a19e05ef10e0a1de72aa3919058141c9f7c29ca3afb777f4a67d5c00;
 
-    event OpenPositionFailed(uint256 pLId);
+    event OpenPositionFailed(uint256 pLId, string reason);
     event BurnPositions(uint256[] posId);
     event ClosePositionFailed(uint256 pid, string reason);
 
@@ -60,6 +60,7 @@ contract Batching is OwnableUpgradeable, Base {
     ) external onlyRole(X1000_BATCHER_ROLE) {
         BatchingStorage storage $ = _getOwnStorage();
         bool[] memory executionResults = new bool[](positions.length);
+        string[] memory reasonFaileds = new string[](positions.length);
         for (uint i = 0; i < positions.length; i++) {
             if (positions[i].isLong) {
                 try
@@ -74,9 +75,10 @@ contract Batching is OwnableUpgradeable, Base {
                 {
                     // Thành công, không làm gì cả
                     executionResults[i] = true;
-                } catch Error(string memory) {
+                } catch Error(string memory errorMessage) {
                     // Xử lý lỗi nếu cần thiết
                     executionResults[i] = false;
+                    reasonFaileds[i] = errorMessage;
                 } catch (bytes memory) {
                     // Xử lý lỗi nếu cần thiết
                     executionResults[i] = false;
@@ -106,7 +108,7 @@ contract Batching is OwnableUpgradeable, Base {
         for (uint i = 0; i < executionResults.length; i++) {
             console.log("executionResults[i]: ", executionResults[i], i);
             if (!executionResults[i]) {
-                emit OpenPositionFailed(positions[i].plId);
+                emit OpenPositionFailed(positions[i].plId, reasonFaileds[i]);
             }
         }
     }
