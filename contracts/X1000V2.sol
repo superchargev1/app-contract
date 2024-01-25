@@ -279,5 +279,12 @@ contract X1000V2 is OwnableUpgradeable, Base {
         $.credit.transferFrom(account, value, _fee + _platformFee);
     }
 
-    function closePosition(uint256 posId, uint256 price) external {}
+    function closePosition(uint256 posId, uint256 price) external {
+        X1000V2Storage storage $ = _getOwnStorage();
+        Position storage pos = $.positions[posId];
+        Pool storage pool = $.pools[pos.poolId];
+        require(pos.status == PositionStatus.OPEN, "Invalid Position Status");
+        uint256 _value = (pos.amount * pos.leverage) / WEI6;
+        uint256 _returnValue;
+    }
 }
