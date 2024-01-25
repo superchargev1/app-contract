@@ -193,7 +193,7 @@ describe("X1000V2", function () {
       await (
         await x1000V2
           .connect(otherAccount)
-          .openLongPosition(
+          .openLongPositionV2(
             otherAccount.address,
             ethers.encodeBytes32String("ETH"),
             100000000,
@@ -205,7 +205,7 @@ describe("X1000V2", function () {
       await (
         await x1000V2
           .connect(otherAccount)
-          .openShortPosition(
+          .openShortPositionV2(
             otherAccount.address,
             ethers.encodeBytes32String("ETH"),
             100000000,
@@ -213,6 +213,12 @@ describe("X1000V2", function () {
             2322420000,
             1
           )
+      ).wait();
+      await (
+        await x1000V2.connect(otherAccount).closePosition(1, 2320420000)
+      ).wait();
+      await (
+        await x1000V2.connect(otherAccount).closePosition(2, 2323420000)
       ).wait();
       // await (
       //   await batching.connect(otherAccount).openBatchPosition(
