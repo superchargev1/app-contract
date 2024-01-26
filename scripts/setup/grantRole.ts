@@ -24,6 +24,8 @@ async function main() {
   //operator and batcher
   const operator1 = "0xAF2D96d3FE6bA02a508aa136fA73216755D7e750"; //andrew
   const batcher = "0x431cEe0a7d44CbEB06e3C2f9e4A9335Fa5cb36e5";
+  const batcherBurn = "0x4e4BC766F24927E53E58E840577511d72d19707d";
+  const batcherClose = "0x59Ac71331D0431F90381da339A434adD3d49A86a";
 
   const [deployer] = await ethers.getSigners();
   const contracts = getContracts();
@@ -36,9 +38,9 @@ async function main() {
     deployer
   );
   // await (await bookie.grantRole(OPERATOR_ROLE, operator1)).wait();
-  // await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher)).wait();
-  // await (await bookie.grantRole(X1000_BATCHER_BURN_ROLE, batcher)).wait();
-  // await (await bookie.grantRole(X1000_BATCHER_CLOSE_ROLE, batcher)).wait();
+  await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher)).wait();
+  await (await bookie.grantRole(X1000_BATCHER_BURN_ROLE, batcherBurn)).wait();
+  await (await bookie.grantRole(X1000_BATCHER_CLOSE_ROLE, batcherClose)).wait();
   await (
     await bookie.setAddress(BATCHING, contracts?.[networkName]?.["Batching"])
   ).wait();
