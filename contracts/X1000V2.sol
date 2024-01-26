@@ -459,7 +459,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 pnl,
         uint256 pnlGap,
         uint8 ptype
-    ) private returns (uint256) {
+    ) private view returns (uint256) {
         X1000V2Storage storage $ = _getOwnStorage();
         if (ptype == POSITION_TYPE_LONG) {
             if (closePrice < expectPrice) {
