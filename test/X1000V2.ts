@@ -241,10 +241,10 @@ describe("X1000V2", function () {
           [
             {
               account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("ETH"),
-              value: 10000000,
-              leverage: 100000000,
-              price: 2208480000,
+              poolId: ethers.encodeBytes32String("BTC"),
+              value: 100000000,
+              leverage: 1000000000,
+              price: 39914600000,
               isLong: true,
               plId: 1,
               signature,
@@ -273,11 +273,11 @@ describe("X1000V2", function () {
           }
         )
       ).wait();
-      // await (
-      //   await batching
-      //     .connect(otherAccount)
-      //     .closeBatchPosition([1], [2323420000])
-      // ).wait();
+      await (
+        await batching
+          .connect(otherAccount)
+          .closeBatchPosition([1], [39985100000])
+      ).wait();
     });
   });
 });

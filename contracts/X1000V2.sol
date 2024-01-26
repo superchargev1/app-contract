@@ -109,7 +109,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
         // system leverage
         $.config.leverage = 100;
         $.config.platformFeePercent = 1;
-        $.config.burst = 20 * WEI6;
+        $.config.burst = WEI6;
         $.config.rake = 80;
         $.config.profitUnderExpectValue = 90;
         $.config.profitOverExpectValue = 10;
@@ -161,8 +161,8 @@ contract X1000V2 is OwnableUpgradeable, Base {
             leverage,
             price
         );
-        uint256 _liqPrice = (price *
-            (leverage - (WEI6 * $.config.rake) / 100)) / leverage;
+        uint256 _liqPrice = (price * (leverage - WEI6)) / leverage;
+        console.log("_liqPrice: ", _liqPrice);
         Position memory newPos = Position(
             poolId,
             POSITION_TYPE_LONG,
