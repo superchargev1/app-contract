@@ -54,20 +54,18 @@ async function main() {
     await batch.openBatchPosition(
       [
         {
+          plId: "179",
           account: "0xf9F689367990f981BCD267FB1A4c45f63B6Bd7b1",
           poolId:
             "0x4554480000000000000000000000000000000000000000000000000000000000",
-          value: 10000000,
-          leverage: 100000000,
-          price: 2208480000,
+          value: "10000000",
+          leverage: "100000000",
+          price: "2225400000",
           isLong: true,
-          plId: 2,
-          signature,
         },
       ],
       {
         value: 0,
-        gasPrice: (await provider.getFeeData()).gasPrice,
       }
     )
   ).wait();

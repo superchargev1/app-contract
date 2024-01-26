@@ -140,14 +140,6 @@ contract X1000V2 is OwnableUpgradeable, Base {
         uint256 price,
         uint256 plId
     ) public onlyFrom(BATCHING) {
-        // bytes32 hash = keccak256(abi.encodePacked(address(this), plId));
-        // address recoverBooker = MessageHashUtils
-        //     .toEthSignedMessageHash(hash)
-        //     .recover(signature);
-        // require(
-        //     bookie.hasRole(X1000_BATCHER_ROLE, recoverBooker),
-        //     "Invalid signature"
-        // );
         require(
             leverage >= 2 * WEI6 && leverage <= 1000 * WEI6,
             "Invalid leverage"
@@ -496,38 +488,37 @@ contract X1000V2 is OwnableUpgradeable, Base {
         }
     }
 
-    // function getPnL(
-    //     uint256 closePrice,
-    //     uint256 expectPrice,
-    //     uint256 pnl,
-    //     uint256 pnlGap,
-    //     PositionType ptype
-    // ) external view returns (uint256 pnl) {
-    //     X1000V2Storage storage $ = _getOwnStorage();
-    //     if (ptype == POSITION_TYPE_LONG) {
-    //         if (closePrice < expectPrice) {
-    //             return ($.config.profitUnderExpectValue * pnl) / 100;
-    //         } else {
-    //             console.log("run here 123");
-    //             uint256 _fee = ($.config.profitUnderExpectValue * pnlGap) /
-    //                 100 +
-    //                 ($.config.profitOverExpectValue * (pnl - pnlGap)) /
-    //                 100;
-    //             console.log("_fee: ", _fee);
-    //             return _fee;
-    //         }
-    //     } else {
-    //         if (closePrice > expectPrice) {
-    //             console.log("run here 234");
-    //             return ($.config.profitUnderExpectValue * pnl) / 100;
-    //         } else {
-    //             uint256 _fee = ($.config.profitUnderExpectValue * pnlGap) /
-    //                 100 +
-    //                 ($.config.profitOverExpectValue * (pnl - pnlGap)) /
-    //                 100;
-    //             console.log("_fee: ", _fee);
-    //             return _fee;
-    //         }
-    //     }
-    // }
+    function getPnl(
+        uint256 posId,
+        uint256 price
+    ) external view returns (uint256 pnl) {
+        X1000V2Storage storage $ = _getOwnStorage();
+        Position storage pos = $.positions[posId];
+        uint256 _size = (pos.amount * pos.leverage) / WEI6;
+        //calculate position pnl
+        uint256 _pnl = pos.ptype == POSITION_TYPE_LONG
+            ? price > pos.openPrice
+                ? (_size * price - _size * pos.openPrice) / pos.openPrice
+                : 0
+            : price < pos.openPrice
+            ? (_size * pos.openPrice - _size * price) / pos.openPrice
+            : 0;
+        uint256 _pnlGap = pos.ptype == POSITION_TYPE_LONG
+            ? pos.expectPrice - pos.openPrice
+            : pos.openPrice - pos.expectPrice;
+        if (_pnl > 0) {
+            uint256 _profitFee = _getProfitFee(
+                price,
+                pos.expectPrice,
+                _pnl,
+                _pnlGap,
+                pos.ptype
+            );
+            pnl = _pnl - _profitFee;
+        } else {
+            pnl = (pos.ptype == POSITION_TYPE_LONG)
+                ? ((pos.openPrice - price) * pos.size) / pos.openPrice
+                : ((price - pos.openPrice) * pos.size) / pos.openPrice;
+        }
+    }
 }
