@@ -233,7 +233,7 @@ describe("X1000V2", function () {
         )
       );
       const message = ethers.getBytes(hash);
-      console.log("otherAccount:", otherAccount.address);
+      console.log("otherAccount:", ethers.encodeBytes32String("BTC"));
 
       const signature = await otherAccount.signMessage(message);
       await (
@@ -244,29 +244,29 @@ describe("X1000V2", function () {
               poolId: ethers.encodeBytes32String("BTC"),
               value: 100000000,
               leverage: 1000000000,
-              price: 39914600000,
+              price: 41248000000,
               isLong: true,
               plId: 1,
               signature,
             },
-            // {
-            //   account: otherAccount.address,
-            //   poolId: ethers.encodeBytes32String("ETH"),
-            //   value: 10000000,
-            //   leverage: 1000000000,
-            //   price: 2215000000,
-            //   isLong: true,
-            //   plId: 2,
-            // },
-            // {
-            //   account: otherAccount.address,
-            //   poolId: ethers.encodeBytes32String("ETH"),
-            //   value: 100000000,
-            //   leverage: 1000000000,
-            //   price: 2215940000,
-            //   isLong: false,
-            //   plId: 3,
-            // },
+            {
+              account: otherAccount.address,
+              poolId: ethers.encodeBytes32String("BTC"),
+              value: 100000000,
+              leverage: 1000000000,
+              price: 41248000000,
+              isLong: true,
+              plId: 2,
+            },
+            {
+              account: otherAccount.address,
+              poolId: ethers.encodeBytes32String("BTC"),
+              value: 10000000,
+              leverage: 1000000000,
+              price: 41228800000,
+              isLong: true,
+              plId: 3,
+            },
           ],
           {
             value: 0,
@@ -276,7 +276,7 @@ describe("X1000V2", function () {
       await (
         await batching
           .connect(otherAccount)
-          .closeBatchPosition([1], [39985100000])
+          .closeBatchPosition([1], [41286100000])
       ).wait();
     });
   });

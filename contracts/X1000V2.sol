@@ -396,17 +396,17 @@ contract X1000V2 is OwnableUpgradeable, Base {
         if ($.pools[poolId].shortSize > 0) {
             _openPrice =
                 price +
-                ((price * _size * _tmpLongSize * $.config.burst) / WEI6) /
-                (_pLiquid + _tmpLongSize - _deltaPNL * price) /
+                (((price / WEI6) * _size * _tmpLongSize * $.config.burst)) /
+                (_pLiquid + _tmpLongSize - (_deltaPNL * price) / WEI6) /
                 $.pools[poolId].shortSize;
         } else {
             _openPrice = (((_pLiquid +
                 _tmpLongSize +
                 (_size * $.config.burst) /
                 WEI6 -
-                _deltaPNL *
-                price) * price) /
-                (_pLiquid + _tmpLongSize - _deltaPNL * price));
+                (_deltaPNL * price) /
+                WEI6) * price) /
+                (_pLiquid + _tmpLongSize - (_deltaPNL * price) / WEI6));
         }
         return _openPrice;
     }
@@ -439,16 +439,16 @@ contract X1000V2 is OwnableUpgradeable, Base {
             _openPrice =
                 price -
                 ((price * _size * _tmpShortSize * $.config.burst) / WEI6) /
-                (_pLiquid + _tmpShortSize - _deltaPNL * price) /
+                (_pLiquid + _tmpShortSize - (_deltaPNL * price) / WEI6) /
                 $.pools[poolId].longSize;
         } else {
             _openPrice = (((_pLiquid +
                 _tmpShortSize -
                 (_size * $.config.burst) /
                 WEI6 -
-                _deltaPNL *
-                price) * price) /
-                (_pLiquid + _tmpShortSize - _deltaPNL * price));
+                (_deltaPNL * price) /
+                WEI6) * price) /
+                (_pLiquid + _tmpShortSize - (_deltaPNL * price) / WEI6));
         }
         return _openPrice;
     }
@@ -520,5 +520,10 @@ contract X1000V2 is OwnableUpgradeable, Base {
                 ? ((pos.openPrice - price) * pos.size) / pos.openPrice
                 : ((price - pos.openPrice) * pos.size) / pos.openPrice;
         }
+    }
+
+    function getPoolData(bytes32 poolId) external view returns (Pool memory) {
+        X1000V2Storage storage $ = _getOwnStorage();
+        return $.pools[poolId];
     }
 }
