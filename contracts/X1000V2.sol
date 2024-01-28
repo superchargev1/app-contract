@@ -161,7 +161,8 @@ contract X1000V2 is OwnableUpgradeable, Base {
             leverage,
             price
         );
-        uint256 _liqPrice = (price * (leverage - WEI6)) / leverage;
+        uint256 _liqPrice = (price *
+            (leverage - (WEI6 * $.config.rake) / 100)) / leverage;
         console.log("_liqPrice: ", _liqPrice);
         Position memory newPos = Position(
             poolId,
@@ -277,9 +278,11 @@ contract X1000V2 is OwnableUpgradeable, Base {
             : price < pos.openPrice
             ? (_size * pos.openPrice - _size * price) / pos.openPrice
             : 0;
+        //_pnl = 151612.24961007261366795621504201 (short)
         uint256 _pnlGap = pos.ptype == POSITION_TYPE_LONG
-            ? pos.expectPrice - pos.openPrice
-            : pos.openPrice - pos.expectPrice;
+            ? ((pos.expectPrice - pos.openPrice) * _size) / pos.openPrice
+            : ((pos.openPrice - pos.expectPrice) * _size) / pos.openPrice;
+        //_pnlGap = 651386
         uint256 _returnValue;
         uint256 _profitFee;
         if (_pnl > 0) {
