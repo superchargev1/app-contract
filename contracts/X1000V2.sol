@@ -360,8 +360,22 @@ contract X1000V2 is OwnableUpgradeable, Base {
     }
 
     //////////////////////////////////////////
-    /////////////// GETTER //////////////////////
-    ////////////////////////////////////////
+    /////////////// SETTER ///////////////////
+    //////////////////////////////////////////
+
+    function setBurst(uint256 burst) external onlyRole(ADMIN_ROLE) {
+        X1000V2Storage storage $ = _getOwnStorage();
+        $.config.burst = burst;
+    }
+
+    function setRake(uint64 rake) external onlyRole(ADMIN_ROLE) {
+        X1000V2Storage storage $ = _getOwnStorage();
+        $.config.rake = rake;
+    }
+
+    //////////////////////////////////////////
+    /////////////// GETTER ///////////////////
+    //////////////////////////////////////////
     function getLongPosition(
         uint256 posId
     ) external view returns (Position memory) {
@@ -370,8 +384,8 @@ contract X1000V2 is OwnableUpgradeable, Base {
     }
 
     //////////////////////////////////////////
-    /////////////// PRIVATE //////////////////////
-    ////////////////////////////////////////
+    /////////////// PRIVATE //////////////////
+    //////////////////////////////////////////
     function _getLongExpectPrice(
         bytes32 poolId,
         uint256 value,

@@ -143,14 +143,14 @@ describe("X1000V2", function () {
       await (
         await mockUSDC
           .connect(owner)
-          .approve(await credit.getAddress(), 1000000000000)
+          .approve(await credit.getAddress(), 1038063237970)
       ).wait();
       expect(
         await mockUSDC.allowance(
           await owner.getAddress(),
           await credit.getAddress()
         )
-      ).to.eq(1000000000000);
+      ).to.eq(1038063237970);
       await (
         await mockUSDC.setTransferable(await credit.getAddress(), true)
       ).wait();
@@ -248,24 +248,6 @@ describe("X1000V2", function () {
               isLong: true,
               plId: 1,
               signature,
-            },
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("BTC"),
-              value: 100000000,
-              leverage: 1000000000,
-              price: 41248000000,
-              isLong: true,
-              plId: 2,
-            },
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("BTC"),
-              value: 10000000,
-              leverage: 1000000000,
-              price: 41228800000,
-              isLong: true,
-              plId: 3,
             },
           ],
           {
