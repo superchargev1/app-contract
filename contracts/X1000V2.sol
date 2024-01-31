@@ -483,9 +483,10 @@ contract X1000V2 is OwnableUpgradeable, Base {
                 return ($.config.profitUnderExpectValue * pnl) / 100;
             } else {
                 console.log("run here 123");
-                uint256 _fee = ($.config.profitUnderExpectValue * pnlGap) /
+                uint256 _fee = (($.config.profitUnderExpectValue * pnl) /
+                    (pnl - pnlGap)) /
                     100 +
-                    ($.config.profitOverExpectValue * (pnl - pnlGap)) /
+                    ($.config.profitOverExpectValue * pnl) /
                     100;
                 console.log("_fee: ", _fee);
                 return _fee;
@@ -495,9 +496,10 @@ contract X1000V2 is OwnableUpgradeable, Base {
                 console.log("run here 234");
                 return ($.config.profitUnderExpectValue * pnl) / 100;
             } else {
-                uint256 _fee = ($.config.profitUnderExpectValue * pnlGap) /
+                uint256 _fee = (($.config.profitUnderExpectValue * pnl) /
+                    (pnl - pnlGap)) /
                     100 +
-                    ($.config.profitOverExpectValue * (pnl - pnlGap)) /
+                    ($.config.profitOverExpectValue * pnl) /
                     100;
                 console.log("_fee: ", _fee);
                 return _fee;

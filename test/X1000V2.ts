@@ -143,14 +143,14 @@ describe("X1000V2", function () {
       await (
         await mockUSDC
           .connect(owner)
-          .approve(await credit.getAddress(), 1038063237970)
+          .approve(await credit.getAddress(), 1038609820012)
       ).wait();
       expect(
         await mockUSDC.allowance(
           await owner.getAddress(),
           await credit.getAddress()
         )
-      ).to.eq(1038063237970);
+      ).to.eq(1038609820012);
       await (
         await mockUSDC.setTransferable(await credit.getAddress(), true)
       ).wait();
@@ -234,8 +234,6 @@ describe("X1000V2", function () {
       );
       const message = ethers.getBytes(hash);
       console.log("otherAccount:", ethers.encodeBytes32String("BTC"));
-
-      const signature = await otherAccount.signMessage(message);
       await (
         await batching.connect(otherAccount).openBatchPosition(
           [
@@ -244,10 +242,9 @@ describe("X1000V2", function () {
               poolId: ethers.encodeBytes32String("BTC"),
               value: 100000000,
               leverage: 1000000000,
-              price: 41248000000,
+              price: 42938000000,
               isLong: true,
               plId: 1,
-              signature,
             },
           ],
           {
@@ -258,7 +255,7 @@ describe("X1000V2", function () {
       await (
         await batching
           .connect(otherAccount)
-          .closeBatchPosition([1], [41286100000])
+          .closeBatchPosition([1], [42973000000])
       ).wait();
     });
   });
