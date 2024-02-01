@@ -306,12 +306,23 @@ contract X1000V2 is OwnableUpgradeable, Base {
             pos.status = POSITION_STATUS_CLOSED;
             pos.closePrice = uint88(price);
             if (pos.ptype == POSITION_TYPE_LONG) {
-                pool.longSize -= pos.size;
-                pool.longPosition -= (pos.size * WEI6) / pos.openPrice;
+                pool.longSize = pool.longSize < pos.size
+                    ? 0
+                    : pool.longSize - pos.size;
+                pool.longPosition = pool.longPosition <
+                    (pos.size * WEI6) / pos.openPrice
+                    ? 0
+                    : pool.longPosition - (pos.size * WEI6) / pos.openPrice;
             } else {
-                pool.shortSize -= pos.size;
-                pool.shortPosition -= (pos.size * WEI6) / pos.openPrice;
+                pool.shortSize = pool.shortSize < pos.size
+                    ? 0
+                    : pool.shortSize - pos.size;
+                pool.shortPosition = pool.shortPosition <
+                    (pos.size * WEI6) / pos.openPrice
+                    ? 0
+                    : pool.shortPosition - (pos.size * WEI6) / pos.openPrice;
             }
+            console.log("done process");
             $.credit.transfer(pos.user, _returnValue, _profitFee);
         } else {
             _returnValue = pos.ptype == POSITION_TYPE_LONG
@@ -323,11 +334,25 @@ contract X1000V2 is OwnableUpgradeable, Base {
                     pos.openPrice;
             console.log("_returnValue: ", _returnValue);
             if (pos.ptype == POSITION_TYPE_LONG) {
-                pool.longSize -= pos.size;
-                pool.longPosition -= (pos.size * WEI6) / pos.openPrice;
+                console.log(
+                    "pool long size after close: ",
+                    pool.longSize - pos.size
+                );
+                pool.longSize = pool.longSize < pos.size
+                    ? 0
+                    : pool.longSize - pos.size;
+                pool.longPosition = pool.longPosition <
+                    (pos.size * WEI6) / pos.openPrice
+                    ? 0
+                    : pool.longPosition - (pos.size * WEI6) / pos.openPrice;
             } else {
-                pool.shortSize -= pos.size;
-                pool.shortPosition -= (pos.size * WEI6) / pos.openPrice;
+                pool.shortSize = pool.shortSize < pos.size
+                    ? 0
+                    : pool.shortSize - pos.size;
+                pool.shortPosition = pool.shortPosition <
+                    (pos.size * WEI6) / pos.openPrice
+                    ? 0
+                    : pool.shortPosition - (pos.size * WEI6) / pos.openPrice;
             }
             $.credit.transfer(pos.user, _returnValue, 0);
         }
@@ -345,15 +370,29 @@ contract X1000V2 is OwnableUpgradeable, Base {
             $.positions[posId].status = POSITION_STATUS_BURNT;
             Position storage pos = $.positions[posId];
             if (pos.ptype == POSITION_TYPE_LONG) {
-                $.pools[pos.poolId].longSize -= pos.size;
-                $.pools[pos.poolId].longPosition -=
-                    (pos.size * WEI6) /
-                    pos.openPrice;
+                $.pools[pos.poolId].longSize = $.pools[pos.poolId].longSize <
+                    pos.size
+                    ? 0
+                    : $.pools[pos.poolId].longSize - pos.size;
+                $.pools[pos.poolId].longPosition = $
+                    .pools[pos.poolId]
+                    .longPosition < (pos.size * WEI6) / pos.openPrice
+                    ? 0
+                    : $.pools[pos.poolId].longPosition -
+                        (pos.size * WEI6) /
+                        pos.openPrice;
             } else {
-                $.pools[pos.poolId].shortSize -= pos.size;
-                $.pools[pos.poolId].shortPosition -=
-                    (pos.size * WEI6) /
-                    pos.openPrice;
+                $.pools[pos.poolId].shortSize = $.pools[pos.poolId].shortSize <
+                    pos.size
+                    ? 0
+                    : $.pools[pos.poolId].shortSize - pos.size;
+                $.pools[pos.poolId].shortPosition = $
+                    .pools[pos.poolId]
+                    .shortPosition < (pos.size * WEI6) / pos.openPrice
+                    ? 0
+                    : $.pools[pos.poolId].shortPosition -
+                        (pos.size * WEI6) /
+                        pos.openPrice;
             }
             return (posId);
         }
@@ -376,7 +415,7 @@ contract X1000V2 is OwnableUpgradeable, Base {
     //////////////////////////////////////////
     /////////////// GETTER ///////////////////
     //////////////////////////////////////////
-    function getLongPosition(
+    function getPosition(
         uint256 posId
     ) external view returns (Position memory) {
         X1000V2Storage storage $ = _getOwnStorage();

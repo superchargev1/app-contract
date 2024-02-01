@@ -143,14 +143,14 @@ describe("X1000V2", function () {
       await (
         await mockUSDC
           .connect(owner)
-          .approve(await credit.getAddress(), 1038609820012)
+          .approve(await credit.getAddress(), 1040685192888)
       ).wait();
       expect(
         await mockUSDC.allowance(
           await owner.getAddress(),
           await credit.getAddress()
         )
-      ).to.eq(1038609820012);
+      ).to.eq(1040685192888);
       await (
         await mockUSDC.setTransferable(await credit.getAddress(), true)
       ).wait();
@@ -234,28 +234,147 @@ describe("X1000V2", function () {
       );
       const message = ethers.getBytes(hash);
       console.log("otherAccount:", ethers.encodeBytes32String("BTC"));
+      //set position
       await (
-        await batching.connect(otherAccount).openBatchPosition(
-          [
-            {
-              account: otherAccount.address,
-              poolId: ethers.encodeBytes32String("BTC"),
-              value: 100000000,
-              leverage: 1000000000,
-              price: 42938000000,
-              isLong: true,
-              plId: 1,
-            },
-          ],
-          {
-            value: 0,
-          }
-        )
+        await x1000V2
+          .connect(owner)
+          .setPosition(
+            ethers.encodeBytes32String("BTC"),
+            1,
+            1,
+            990000000,
+            100000000,
+            99000000000,
+            42196900000,
+            41859324800,
+            42200791221,
+            "0x12FE78Cb0D807f0Faf0E963F6C3663b818974a17"
+          )
       ).wait();
+      await (
+        await x1000V2
+          .connect(owner)
+          .setPosition(
+            ethers.encodeBytes32String("BTC"),
+            1,
+            1,
+            9900000,
+            100000000,
+            990000000,
+            42240000000,
+            41902080000,
+            42240139655,
+            "0xd6f3FD60aFA52F48186cA4eB1d49bA59bC4014Ef"
+          )
+      ).wait();
+      await (
+        await x1000V2
+          .connect(owner)
+          .setPosition(
+            ethers.encodeBytes32String("BTC"),
+            1,
+            1,
+            99000000,
+            100000000,
+            9900000000,
+            42146100000,
+            41808931200,
+            42146140039,
+            "0x70f7acB809040F252e5cc4AdD5CA1c3326a192A0"
+          )
+      ).wait();
+      await (
+        await x1000V2
+          .connect(owner)
+          .setPosition(
+            ethers.encodeBytes32String("BTC"),
+            1,
+            1,
+            9900000,
+            100000000,
+            990000000,
+            42049100000,
+            41712707200,
+            42049129549,
+            "0xc615e3178a63BA2d720eb245f7872a129495C27C"
+          )
+      ).wait();
+      await (
+        await x1000V2
+          .connect(owner)
+          .setPosition(
+            ethers.encodeBytes32String("BTC"),
+            2,
+            1,
+            49500000,
+            100000000,
+            4950000000,
+            42033800000,
+            42370070400,
+            42033769642,
+            "0x3Fd90a476938128DAf98C51193ef7a6B139C974F"
+          )
+      ).wait();
+      await (
+        await x1000V2
+          .connect(owner)
+          .setPosition(
+            ethers.encodeBytes32String("BTC"),
+            1,
+            1,
+            49500000,
+            100000000,
+            4950000000,
+            42043600000,
+            41707251200,
+            42043960856,
+            "0x3Fd90a476938128DAf98C51193ef7a6B139C974F"
+          )
+      ).wait();
+      await (
+        await x1000V2
+          .connect(owner)
+          .setPosition(
+            ethers.encodeBytes32String("BTC"),
+            1,
+            1,
+            9930000,
+            70000000,
+            695100000,
+            42060300000,
+            41579610857,
+            42060304527,
+            "0x3Fd90a476938128DAf98C51193ef7a6B139C974F"
+          )
+      ).wait();
+      // await (
+      //   await batching.connect(otherAccount).openBatchPosition(
+      //     [
+      //       {
+      //         account: otherAccount.address,
+      //         poolId: ethers.encodeBytes32String("BTC"),
+      //         value: 10000000,
+      //         leverage: 100000000,
+      //         price: 42049100000,
+      //         isLong: true,
+      //         plId: 1,
+      //       },
+      //     ],
+      //     {
+      //       value: 0,
+      //     }
+      //   )
+      // ).wait();
       await (
         await batching
           .connect(otherAccount)
-          .closeBatchPosition([1], [42973000000])
+          .closeBatchPosition(
+            [1, 2, 3, 4, 5, 6, 7],
+            [
+              42200000000, 42200000000, 42200000000, 42200000000, 42200000000,
+              42200000000, 42200000000,
+            ]
+          )
       ).wait();
     });
   });
