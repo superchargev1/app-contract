@@ -136,10 +136,6 @@ contract Credit is OwnableUpgradeable, Base {
         creditToken.transferFrom(msg.sender, address(this), amount);
         // then credit for account
         $.platform += creditAmount;
-        bytes32 x = keccak256(
-            abi.encode(uint256(keccak256("goal3.storage.X1000V4")) - 1)
-        ) & ~bytes32(uint256(0xff));
-        console.logBytes32(x);
 
         emit TopupSystem(msg.sender, creditAmount);
     }
