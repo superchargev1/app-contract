@@ -20,6 +20,7 @@ struct CreditConfig {
 contract Credit is OwnableUpgradeable, Base {
     uint64 public constant WEI6 = 10 ** 6; // base for calculation
     bytes32 public constant X1000V2 = keccak256("X1000V2");
+    bytes32 public constant PREDICT_MARKET = keccak256("PREDICT_MARKET");
     event Topup(address from, address to, uint256 amount);
     event TopupSystem(address from, uint256 amount);
     event Withdraw(address from, address to, uint256 amount);
@@ -38,6 +39,7 @@ contract Credit is OwnableUpgradeable, Base {
         uint256 fee;
         uint256 totalTopup;
         uint256 totalWithdraw;
+        uint256 predictMarketPlatform;
     }
 
     // keccak256(abi.encode(uint256(keccak256("x1000.storage.credit")) - 1)) & ~bytes32(uint256(0xff))
@@ -166,6 +168,29 @@ contract Credit is OwnableUpgradeable, Base {
         $.platform += (amount - fee);
     }
 
+    function predicMarketTransfer(
+        address account,
+        uint256 amount,
+        uint256 fee
+    ) external onlyFrom(PREDICT_MARKET) {
+        CreditStorage storage $ = _getOwnStorage();
+        $.credits[account] += amount;
+        $.fee += fee;
+        $.predictMarketPlatform -= (amount + fee);
+    }
+
+    function predicMarketTransferFrom(
+        address account,
+        uint256 amount,
+        uint256 fee
+    ) external onlyFrom(PREDICT_MARKET) {
+        CreditStorage storage $ = _getOwnStorage();
+        require(amount > fee, "Invalid amount and fee");
+        $.credits[account] -= amount;
+        $.fee += fee;
+        $.predictMarketPlatform += (amount - fee);
+    }
+
     ////////////////////
     /////// SETTER /////
     ////////////////////
@@ -232,6 +257,11 @@ contract Credit is OwnableUpgradeable, Base {
     function platformCredit() external view returns (uint256) {
         CreditStorage storage $ = _getOwnStorage();
         return $.platform;
+    }
+
+    function predictMarketPlatform() external view returns (uint256) {
+        CreditStorage storage $ = _getOwnStorage();
+        return $.predictMarketPlatform;
     }
 
     function minTopupAmount() external view returns (uint256) {
