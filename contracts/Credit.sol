@@ -40,6 +40,7 @@ contract Credit is OwnableUpgradeable, Base {
         uint256 totalTopup;
         uint256 totalWithdraw;
         uint256 predictMarketPlatform;
+        uint256 preditMarketFee;
     }
 
     // keccak256(abi.encode(uint256(keccak256("x1000.storage.credit")) - 1)) & ~bytes32(uint256(0xff))
@@ -175,7 +176,7 @@ contract Credit is OwnableUpgradeable, Base {
     ) external onlyFrom(PREDICT_MARKET) {
         CreditStorage storage $ = _getOwnStorage();
         $.credits[account] += amount;
-        $.fee += fee;
+        $.preditMarketFee += fee;
         $.predictMarketPlatform -= (amount + fee);
     }
 
@@ -187,7 +188,7 @@ contract Credit is OwnableUpgradeable, Base {
         CreditStorage storage $ = _getOwnStorage();
         require(amount > fee, "Invalid amount and fee");
         $.credits[account] -= amount;
-        $.fee += fee;
+        $.preditMarketFee += fee;
         $.predictMarketPlatform += (amount - fee);
     }
 

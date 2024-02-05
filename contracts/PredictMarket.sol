@@ -52,7 +52,6 @@ contract PredictMarket is OwnableUpgradeable, Base {
     event EventOpen(uint40 eventId);
 
     struct PredictStorage {
-        uint40 boost;
         uint256 initializeTime;
         uint256 eventCount;
         uint256 lastPosId;
@@ -66,6 +65,9 @@ contract PredictMarket is OwnableUpgradeable, Base {
         mapping(uint40 => uint88) totalWinEvent;
         mapping(uint40 => uint88) totalLostEvent;
         Credit credit;
+        uint32 rake;
+        //trading fee
+        uint32 tradingFee;
     }
 
     // keccak256(abi.encode(uint256(keccak256("supercharge.storage.predictmarket")) - 1)) & ~bytes32(uint256(0xff))
@@ -88,8 +90,9 @@ contract PredictMarket is OwnableUpgradeable, Base {
         $.credit = Credit(creditContractAddress);
         $.initializeTime = 30 * 60;
         //boost is percentage
-        //for example 10% boost
-        $.boost = 10;
+        $.rake = 10;
+        //tradingFee base 1000
+        $.tradingFee = 5;
     }
 
     function createEvent(
@@ -127,42 +130,49 @@ contract PredictMarket is OwnableUpgradeable, Base {
         );
         if ($.events[eventId].status == EVENT_STATUS_POOL_INITIALIZE) {
             $.lastPosId++;
-            $.totalEventVolume[eventId] += amount;
-            $.totalOcVolume[outcome] += amount;
-            $.totalOcVolumeInitial[outcome] += amount;
+            //calculate the trading fee
+            uint88 fee = (amount * $.tradingFee) / 1000;
+            uint88 rAmount = amount - fee;
+            $.totalEventVolume[eventId] += rAmount;
+            $.totalOcVolume[outcome] += rAmount;
+            $.totalOcVolumeInitial[outcome] += rAmount;
             Position memory newPos = Position(
                 POSITION_STATUS_INITIALIZE,
                 0,
-                amount,
+                rAmount,
                 0,
                 block.timestamp,
                 outcome
             );
             $.positions[$.lastPosId] = newPos;
             //transfer credit
-            $.credit.predicMarketTransferFrom(msg.sender, amount, 0);
+            $.credit.predicMarketTransferFrom(msg.sender, amount, fee);
         } else if ($.events[eventId].status == EVENT_STATUS_OPEN) {
             $.lastPosId++;
+            //calculate the trading fee
+            uint88 fee = (amount * $.tradingFee) / 1000;
+            uint88 rAmount = amount - fee;
             //calculate the price and position
-            $.totalEventVolume[eventId] += uint88(amount);
-            $.totalOcVolume[outcome] += uint88(amount);
+            $.totalEventVolume[eventId] += rAmount;
+            $.totalOcVolume[outcome] += rAmount;
             //calculate the price
             uint40 price = uint40(
-                $.totalEventVolume[eventId] / $.totalOcVolume[outcome]
+                ($.totalEventVolume[eventId] * 100) /
+                    ($.totalOcVolume[outcome] * (100 + $.rake))
             );
             //calculate the position
-            uint88 position = uint88(price * amount);
+            uint88 position = uint88(price * rAmount);
             Position memory newPos = Position(
                 POSITION_STATUS_OPEN,
                 price,
-                amount,
+                rAmount,
                 position,
                 block.timestamp,
                 outcome
             );
             $.positions[$.lastPosId] = newPos;
             //transfer credit
-            $.credit.predicMarketTransferFrom(msg.sender, amount, 0);
+            $.credit.predicMarketTransferFrom(msg.sender, amount, fee);
         }
     }
 
@@ -254,16 +264,23 @@ contract PredictMarket is OwnableUpgradeable, Base {
     ////////////////////
     /////// SETTER /////
     ////////////////////
-    function setBoost(uint40 newBoost) external onlyRole(OPERATOR_ROLE) {
-        PredictStorage storage $ = _getOwnStorage();
-        $.boost = newBoost;
-    }
-
     function setInitializeTime(
         uint256 newInitializeTime
     ) external onlyRole(OPERATOR_ROLE) {
         PredictStorage storage $ = _getOwnStorage();
         $.initializeTime = newInitializeTime;
+    }
+
+    function setRake(uint32 newRake) external onlyRole(OPERATOR_ROLE) {
+        PredictStorage storage $ = _getOwnStorage();
+        $.rake = newRake;
+    }
+
+    function setTradingFee(
+        uint32 newTradingFee
+    ) external onlyRole(OPERATOR_ROLE) {
+        PredictStorage storage $ = _getOwnStorage();
+        $.tradingFee = newTradingFee;
     }
 
     ////////////////////
@@ -320,9 +337,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
                         $.totalOcVolumeInitial[pos.outcomeId]
                 );
                 //calculate the position
-                uint88 position = uint88(
-                    (price * pos.amount * (100 + $.boost)) / 100
-                );
+                uint88 position = uint88(price * pos.amount);
                 return (
                     pos.outcomeId,
                     price,
