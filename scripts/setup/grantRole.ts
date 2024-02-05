@@ -6,6 +6,10 @@ async function main() {
     ["string"],
     ["OPERATOR_ROLE"]
   );
+  const RESOLVER_ROLE = ethers.solidityPackedKeccak256(
+    ["string"],
+    ["RESOLVER_ROLE"]
+  );
   const X1000_BATCHER_ROLE = ethers.solidityPackedKeccak256(
     ["string"],
     ["X1000_BATCHER_ROLE"]
@@ -20,9 +24,14 @@ async function main() {
   );
   const BATCHING = ethers.solidityPackedKeccak256(["string"], ["BATCHING"]);
   const X1000 = ethers.solidityPackedKeccak256(["string"], ["X1000V2"]);
+  const PREDICT_MARKET = ethers.solidityPackedKeccak256(
+    ["string"],
+    ["PREDICT_MARKET"]
+  );
 
   //operator and batcher
   const operator1 = "0xAF2D96d3FE6bA02a508aa136fA73216755D7e750"; //andrew
+  const resolver1 = "0xcda3C6C722c06488E337f2B925e5B004d1D160Bf"; //andrew
   const batcher = "0x431cEe0a7d44CbEB06e3C2f9e4A9335Fa5cb36e5";
   const batcher2 = "0x123D95d5C0DC9beD62C43DC4b94d45163c0F4ebe";
   const batcher3 = "0xaF478a9389D103FDCe605F87E38ad82c6357715F";
@@ -43,6 +52,7 @@ async function main() {
     deployer
   );
   await (await bookie.grantRole(OPERATOR_ROLE, operator1)).wait();
+  await (await bookie.grantRole(RESOLVER_ROLE, resolver1)).wait();
   await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher)).wait();
   await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher2)).wait();
   await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher3)).wait();
@@ -60,6 +70,12 @@ async function main() {
   ).wait();
   await (
     await bookie.setAddress(X1000, contracts?.[networkName]?.["X1000V2"])
+  ).wait();
+  await (
+    await bookie.setAddress(
+      PREDICT_MARKET,
+      contracts?.[networkName]?.["PredictMarket"]
+    )
   ).wait();
 }
 

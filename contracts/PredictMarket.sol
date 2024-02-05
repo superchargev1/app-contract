@@ -278,12 +278,11 @@ contract PredictMarket is OwnableUpgradeable, Base {
         if ($.events[eventId].status == EVENT_STATUS_OPEN) {
             $.totalEventVolume[eventId] -= pos.amount;
             $.totalOcVolume[pos.outcomeId] -= pos.amount;
-            //calculate the price
-            uint40 price = uint40(
-                $.totalEventVolume[eventId] / $.totalOcVolume[pos.outcomeId]
-            );
             //calculate the amount must transfer to user
-            amount = uint88(pos.position * price);
+            amount = uint88(
+                (pos.position * $.totalOcVolume[pos.outcomeId]) /
+                    $.totalEventVolume[eventId]
+            );
         } else if ($.events[eventId].status == EVENT_STATUS_CLOSED) {
             //calculate the price after event close
             uint88 totalWin = $.totalWinEvent[eventId];

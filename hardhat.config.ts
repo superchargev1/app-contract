@@ -34,7 +34,7 @@ const config: HardhatUserConfig = {
       accounts,
     },
     blastSepolia: {
-      url: "https://sepolia.blast.io",
+      url: "https://smart-multi-waterfall.blast-sepolia.quiknode.pro/b8e351809a72520f778e155de91e0c9ae6d68835/",
       accounts,
     },
   },
