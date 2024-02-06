@@ -56,7 +56,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
 
     event EventCreated(uint40 eventId);
     event EventOpen(uint40 eventId);
-    event PositionBuy(
+    event TicketBuy(
         uint88 amount,
         uint256 outcome,
         address account,
@@ -64,7 +64,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
         uint256 posId,
         uint256 ticketId
     );
-    event PositionSell(
+    event TicketSell(
         uint256 ticketId,
         uint88 posAmount,
         uint88 returnAmount,
@@ -210,7 +210,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
             $.credit.predicMarketTransferFrom(msg.sender, amount, fee);
         }
 
-        emit PositionBuy(
+        emit TicketBuy(
             amount,
             outcome,
             msg.sender,
@@ -265,7 +265,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
         //transfer credit
         $.credit.predicMarketTransfer(msg.sender, amount, fee);
 
-        emit PositionSell(
+        emit TicketSell(
             ticketId,
             posAmount,
             (amount - (amount * $.tradingFee) / 1000),
