@@ -33,6 +33,13 @@ struct Position {
     address account;
 }
 
+struct Ticket {
+    //first block
+    uint88 amount;
+    uint88 positionAmount;
+    bool isFirstSell;
+}
+
 contract PredictMarket is OwnableUpgradeable, Base {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
     bytes32 public constant RESOLVER_ROLE = keccak256("RESOLVER_ROLE");
@@ -54,10 +61,11 @@ contract PredictMarket is OwnableUpgradeable, Base {
         uint256 outcome,
         address account,
         uint88 positionAmount,
-        uint256 posId
+        uint256 posId,
+        uint256 ticketId
     );
     event PositionSell(
-        uint256 posId,
+        uint256 ticketId,
         uint88 posAmount,
         uint88 returnAmount,
         address account
@@ -76,6 +84,8 @@ contract PredictMarket is OwnableUpgradeable, Base {
         mapping(uint256 => bool) isOutcomeWinner;
         mapping(uint40 => uint88) totalWinEvent;
         mapping(uint40 => uint88) totalLostEvent;
+        mapping(uint256 => Ticket) tickets;
+        mapping(uint256 => uint256) positionTicket;
         Credit credit;
         uint32 rake;
         //trading fee
@@ -126,6 +136,13 @@ contract PredictMarket is OwnableUpgradeable, Base {
         emit EventCreated(eventId);
     }
 
+    function buildTicketId(
+        address account,
+        uint256 outcome
+    ) internal pure returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(account, outcome)));
+    }
+
     function buyPosition(uint88 amount, uint256 outcome) external {
         PredictStorage storage $ = _getOwnStorage();
         require(amount <= $.credit.getCredit(msg.sender), "Not enough credit");
@@ -141,6 +158,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
             "Event expired"
         );
         uint88 positionAmount;
+        uint256 ticketId = buildTicketId(msg.sender, outcome);
         if ($.events[eventId].status == EVENT_STATUS_POOL_INITIALIZE) {
             $.lastPosId++;
             //calculate the trading fee
@@ -159,6 +177,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 msg.sender
             );
             $.positions[$.lastPosId] = newPos;
+            $.positionTicket[$.lastPosId] = ticketId;
             //transfer credit
             $.credit.predicMarketTransferFrom(msg.sender, amount, fee);
         } else if ($.events[eventId].status == EVENT_STATUS_OPEN) {
@@ -186,6 +205,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 msg.sender
             );
             $.positions[$.lastPosId] = newPos;
+            $.positionTicket[$.lastPosId] = ticketId;
             //transfer credit
             $.credit.predicMarketTransferFrom(msg.sender, amount, fee);
         }
@@ -195,14 +215,29 @@ contract PredictMarket is OwnableUpgradeable, Base {
             outcome,
             msg.sender,
             positionAmount,
-            $.lastPosId
+            $.lastPosId,
+            ticketId
         );
     }
 
-    function sellPosition(uint256 posId, uint88 posAmount) external {
+    function sellPosition(
+        uint256 ticketId,
+        uint88 posAmount,
+        uint256[] memory posIds
+    ) external {
         PredictStorage storage $ = _getOwnStorage();
-        require($.positions[posId].account == msg.sender, "Invalid account");
-        (uint256 _outcomeId, , , , , ) = _getPosition(posId);
+        require(posIds.length > 0, "Invalid posIds");
+        for (uint i = 0; i < posIds.length; i++) {
+            require(
+                $.positionTicket[posIds[i]] == ticketId,
+                "Invalid ticketId"
+            );
+        }
+        require(
+            $.positions[posIds[0]].account == msg.sender,
+            "Invalid account"
+        );
+        uint256 _outcomeId = $.positions[posIds[0]].outcomeId;
         //calculate the next price if sell this position
         uint40 eventId = uint40(_outcomeId >> 64);
         require(
@@ -211,36 +246,27 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 $.events[eventId].status == EVENT_STATUS_CANCEL,
             "Event in initialize"
         );
-        require(
-            $.positions[posId].status != POSITION_STATUS_CLOSE,
-            "Invalid position status"
-        );
         if ($.events[eventId].status == EVENT_STATUS_OPEN) {
             require(
                 block.timestamp <= $.events[eventId].expireTime,
                 "Event Expired"
             );
         }
-        require(
-            $.positions[posId].position >= posAmount,
-            "Invalid position amount"
+        uint88 amount = _calPositionReturnAmount(
+            posIds,
+            posAmount,
+            eventId,
+            ticketId
         );
-        uint88 amount = _calPositionReturnAmount(posId, posAmount);
         if (amount == 0) {
-            revert("Position lost");
-        }
-        //increase the position by posAmount
-        $.positions[posId].position -= posAmount;
-        if ($.positions[posId].position == 0) {
-            //change the position status to close
-            $.positions[posId].status = POSITION_STATUS_CLOSE;
+            revert("Ticket lost");
         }
         uint256 fee = uint256((amount * $.tradingFee) / 1000);
         //transfer credit
         $.credit.predicMarketTransfer(msg.sender, amount, fee);
 
         emit PositionSell(
-            posId,
+            ticketId,
             posAmount,
             (amount - (amount * $.tradingFee) / 1000),
             msg.sender
@@ -340,47 +366,76 @@ contract PredictMarket is OwnableUpgradeable, Base {
     /////// PRIVATE ////
     ////////////////////
     function _calPositionReturnAmount(
-        uint256 posId,
-        uint88 posAmount
+        uint256[] memory posIds,
+        uint88 posAmount,
+        uint40 eventId,
+        uint256 ticketId
     ) private returns (uint88) {
         PredictStorage storage $ = _getOwnStorage();
-        Position memory pos = $.positions[posId];
-        uint40 eventId = uint40(pos.outcomeId >> 64);
+        if (!$.tickets[ticketId].isFirstSell) {
+            for (uint i = 0; i < posIds.length; i++) {
+                (
+                    uint256 _outcomeId,
+                    ,
+                    uint88 _amount,
+                    uint88 _position,
+                    ,
+
+                ) = _getPosition(posIds[i]);
+                $.tickets[ticketId].amount += _amount;
+                $.tickets[ticketId].positionAmount += _position;
+            }
+            $.tickets[ticketId].isFirstSell = true;
+        }
+        require(
+            posAmount <= $.tickets[ticketId].positionAmount,
+            "Invalid posAmount"
+        );
         uint88 amount;
         //calculate the amount
         if ($.events[eventId].status == EVENT_STATUS_OPEN) {
             uint88 eventVolumeBeforeSell = $.totalEventVolume[eventId];
             //calculate the sell amount by posAmount
-            uint88 sellAmount = (pos.amount * posAmount) / pos.amount;
+            uint256 _outcomeId = $.positions[posIds[0]].outcomeId;
+            uint88 sellAmount = ($.tickets[ticketId].amount * posAmount) /
+                $.tickets[ticketId].positionAmount;
             $.totalEventVolume[eventId] -= sellAmount;
-            $.totalOcVolume[pos.outcomeId] -= sellAmount;
+            $.totalOcVolume[_outcomeId] -= sellAmount;
             //calculate the amount must transfer to user
             //apply the slippage
             amount = uint88(
-                (pos.position * $.totalOcVolume[pos.outcomeId]) /
+                ($.tickets[ticketId].positionAmount *
+                    $.totalOcVolume[_outcomeId]) /
                     $.totalEventVolume[eventId] -
-                    (pos.position *
-                        ($.totalOcVolume[pos.outcomeId]) *
+                    ($.tickets[ticketId].positionAmount *
+                        ($.totalOcVolume[_outcomeId]) *
                         sellAmount) /
                     ($.totalEventVolume[eventId] * eventVolumeBeforeSell)
             );
+            //minus the sell position and sell amount
+            $.tickets[ticketId].positionAmount -= posAmount;
+            $.tickets[ticketId].amount -= sellAmount;
         } else if ($.events[eventId].status == EVENT_STATUS_CLOSED) {
             //calculate the price after event close
-            if (!$.isOutcomeWinner[pos.outcomeId]) {
+            uint256 _outcomeId = $.positions[posIds[0]].outcomeId;
+            if (!$.isOutcomeWinner[_outcomeId]) {
                 amount = 0;
             } else {
                 require(
-                    posAmount == pos.amount,
+                    posAmount == $.tickets[ticketId].positionAmount,
                     "Event closed force to sell all"
                 );
                 uint88 totalVolume = $.totalWinEvent[eventId] +
                     $.totalLostEvent[eventId];
                 uint88 price = totalVolume / $.totalWinEvent[eventId];
                 //calculate the amount must transfer to user
-                amount = uint88(pos.position * price);
+                amount = uint88($.tickets[ticketId].positionAmount * price);
+                //minus the sell position and sell amount
+                $.tickets[ticketId].positionAmount = 0;
+                $.tickets[ticketId].amount = 0;
             }
         } else if ($.events[eventId].status == EVENT_STATUS_CANCEL) {
-            amount = posAmount;
+            amount = $.tickets[ticketId].amount;
         }
         return amount;
     }
