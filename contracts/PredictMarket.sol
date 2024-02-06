@@ -176,16 +176,9 @@ contract PredictMarket is OwnableUpgradeable, Base {
         }
     }
 
-    function sellPosition(uint256 posId) external {
+    function sellPosition(uint256 posId, uint88 posAmount) external {
         PredictStorage storage $ = _getOwnStorage();
-        (
-            uint256 _outcomeId,
-            uint40 _price,
-            uint88 _amount,
-            uint88 _position,
-            ,
-            uint8 status
-        ) = _getPosition(posId);
+        (uint256 _outcomeId, , , , , ) = _getPosition(posId);
         //calculate the next price if sell this position
         uint40 eventId = uint40(_outcomeId >> 64);
         require(
@@ -194,12 +187,33 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 $.events[eventId].status == EVENT_STATUS_CANCEL,
             "Event in initialize"
         );
-        uint88 amount = _calPositionReturnAmount(posId);
+        require(
+            $.positions[posId].status != POSITION_STATUS_CLOSE,
+            "Invalid position status"
+        );
+        if ($.events[eventId].status == EVENT_STATUS_OPEN) {
+            require(
+                block.timestamp <= $.events[eventId].expireTime,
+                "Event Expired"
+            );
+        }
+        require(
+            $.positions[posId].position >= posAmount,
+            "Invalid position amount"
+        );
+        uint88 amount = _calPositionReturnAmount(posId, posAmount);
         if (amount == 0) {
             revert("Position lost");
         }
+        //increase the position by posAmount
+        $.positions[posId].position -= posAmount;
+        if ($.positions[posId].position == 0) {
+            //change the position status to close
+            $.positions[posId].status = POSITION_STATUS_CLOSE;
+        }
+        uint256 fee = uint256((amount * $.tradingFee) / 1000);
         //transfer credit
-        $.credit.predicMarketTransfer(msg.sender, amount, 0);
+        $.credit.predicMarketTransfer(msg.sender, amount, fee);
     }
 
     ////////////////////
@@ -283,37 +297,59 @@ contract PredictMarket is OwnableUpgradeable, Base {
         $.tradingFee = newTradingFee;
     }
 
+    function setEventExpiredTime(
+        uint40 eventId,
+        uint256 newExpireTime
+    ) external onlyRole(OPERATOR_ROLE) {
+        PredictStorage storage $ = _getOwnStorage();
+        $.events[eventId].expireTime = newExpireTime;
+    }
+
     ////////////////////
     /////// PRIVATE ////
     ////////////////////
-    function _calPositionReturnAmount(uint256 posId) private returns (uint88) {
+    function _calPositionReturnAmount(
+        uint256 posId,
+        uint88 posAmount
+    ) private returns (uint88) {
         PredictStorage storage $ = _getOwnStorage();
         Position memory pos = $.positions[posId];
         uint40 eventId = uint40(pos.outcomeId >> 64);
         uint88 amount;
         //calculate the amount
         if ($.events[eventId].status == EVENT_STATUS_OPEN) {
-            $.totalEventVolume[eventId] -= pos.amount;
-            $.totalOcVolume[pos.outcomeId] -= pos.amount;
+            uint88 eventVolumeBeforeSell = $.totalEventVolume[eventId];
+            //calculate the sell amount by posAmount
+            uint88 sellAmount = (pos.amount * posAmount) / pos.amount;
+            $.totalEventVolume[eventId] -= sellAmount;
+            $.totalOcVolume[pos.outcomeId] -= sellAmount;
             //calculate the amount must transfer to user
+            //apply the slippage
             amount = uint88(
                 (pos.position * $.totalOcVolume[pos.outcomeId]) /
-                    $.totalEventVolume[eventId]
+                    $.totalEventVolume[eventId] -
+                    (pos.position *
+                        ($.totalOcVolume[pos.outcomeId]) *
+                        sellAmount) /
+                    ($.totalEventVolume[eventId] * eventVolumeBeforeSell)
             );
         } else if ($.events[eventId].status == EVENT_STATUS_CLOSED) {
             //calculate the price after event close
-            uint88 totalWin = $.totalWinEvent[eventId];
-            uint88 totalLost = $.totalLostEvent[eventId];
             if (!$.isOutcomeWinner[pos.outcomeId]) {
                 amount = 0;
             } else {
-                uint88 totalVolume = totalWin + totalLost;
-                uint88 price = totalVolume / totalWin;
+                require(
+                    posAmount == pos.amount,
+                    "Event closed force to sell all"
+                );
+                uint88 totalVolume = $.totalWinEvent[eventId] +
+                    $.totalLostEvent[eventId];
+                uint88 price = totalVolume / $.totalWinEvent[eventId];
                 //calculate the amount must transfer to user
                 amount = uint88(pos.position * price);
             }
         } else if ($.events[eventId].status == EVENT_STATUS_CANCEL) {
-            amount = pos.amount;
+            amount = posAmount;
         }
         return amount;
     }
