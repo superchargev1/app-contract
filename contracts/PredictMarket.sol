@@ -3,8 +3,6 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "./Credit.sol";
 import "./libs/Base.sol";
 import "hardhat/console.sol";
@@ -32,6 +30,7 @@ struct Position {
     uint256 openTime;
     //third block
     uint256 outcomeId;
+    address account;
 }
 
 contract PredictMarket is OwnableUpgradeable, Base {
@@ -50,6 +49,13 @@ contract PredictMarket is OwnableUpgradeable, Base {
 
     event EventCreated(uint40 eventId);
     event EventOpen(uint40 eventId);
+    event PositionBuy(uint88 amount, uint256 outcome, address account);
+    event PositionSell(
+        uint256 posId,
+        uint88 posAmount,
+        uint88 returnAmount,
+        address account
+    );
 
     struct PredictStorage {
         uint256 initializeTime;
@@ -142,7 +148,8 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 rAmount,
                 0,
                 block.timestamp,
-                outcome
+                outcome,
+                msg.sender
             );
             $.positions[$.lastPosId] = newPos;
             //transfer credit
@@ -168,16 +175,20 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 rAmount,
                 position,
                 block.timestamp,
-                outcome
+                outcome,
+                msg.sender
             );
             $.positions[$.lastPosId] = newPos;
             //transfer credit
             $.credit.predicMarketTransferFrom(msg.sender, amount, fee);
         }
+
+        emit PositionBuy(amount, outcome, msg.sender);
     }
 
     function sellPosition(uint256 posId, uint88 posAmount) external {
         PredictStorage storage $ = _getOwnStorage();
+        require($.positions[posId].account == msg.sender, "Invalid account");
         (uint256 _outcomeId, , , , , ) = _getPosition(posId);
         //calculate the next price if sell this position
         uint40 eventId = uint40(_outcomeId >> 64);
@@ -214,6 +225,13 @@ contract PredictMarket is OwnableUpgradeable, Base {
         uint256 fee = uint256((amount * $.tradingFee) / 1000);
         //transfer credit
         $.credit.predicMarketTransfer(msg.sender, amount, fee);
+
+        emit PositionSell(
+            posId,
+            posAmount,
+            (amount - (amount * $.tradingFee) / 1000),
+            msg.sender
+        );
     }
 
     ////////////////////
