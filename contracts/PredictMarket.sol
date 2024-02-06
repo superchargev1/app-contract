@@ -49,7 +49,13 @@ contract PredictMarket is OwnableUpgradeable, Base {
 
     event EventCreated(uint40 eventId);
     event EventOpen(uint40 eventId);
-    event PositionBuy(uint88 amount, uint256 outcome, address account);
+    event PositionBuy(
+        uint88 amount,
+        uint256 outcome,
+        address account,
+        uint88 positionAmount,
+        uint256 posId
+    );
     event PositionSell(
         uint256 posId,
         uint88 posAmount,
@@ -134,6 +140,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
             block.timestamp <= $.events[eventId].expireTime,
             "Event expired"
         );
+        uint88 positionAmount;
         if ($.events[eventId].status == EVENT_STATUS_POOL_INITIALIZE) {
             $.lastPosId++;
             //calculate the trading fee
@@ -168,12 +175,12 @@ contract PredictMarket is OwnableUpgradeable, Base {
                     ($.totalOcVolume[outcome] * (100 + $.rake))
             );
             //calculate the position
-            uint88 position = uint88(price * rAmount);
+            positionAmount = uint88(price * rAmount);
             Position memory newPos = Position(
                 POSITION_STATUS_OPEN,
                 price,
                 rAmount,
-                position,
+                positionAmount,
                 block.timestamp,
                 outcome,
                 msg.sender
@@ -183,7 +190,13 @@ contract PredictMarket is OwnableUpgradeable, Base {
             $.credit.predicMarketTransferFrom(msg.sender, amount, fee);
         }
 
-        emit PositionBuy(amount, outcome, msg.sender);
+        emit PositionBuy(
+            amount,
+            outcome,
+            msg.sender,
+            positionAmount,
+            $.lastPosId
+        );
     }
 
     function sellPosition(uint256 posId, uint88 posAmount) external {
