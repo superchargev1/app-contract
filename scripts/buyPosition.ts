@@ -16,12 +16,12 @@ async function main(userPk: string) {
   const txhash = await (
     await predictMarket
       .connect(user)
-      .buyPosition(BigInt(10000000), 424275113815578771491n)
+      .buyPosition(BigInt(10000000), 461168601971587809319n)
   ).wait();
   console.log("txhash: ", txhash);
 }
 
-main("275f71e1edda45afd359d9a5035bd7872c49ae0a057a8fdcc41817d1bd8d578f")
+main("05da03320b3b4a107f0a340b74974596199219ff4031f9a22b85a7d6724ac33a")
   .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);

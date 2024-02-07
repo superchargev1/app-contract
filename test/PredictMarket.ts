@@ -270,27 +270,20 @@ describe("PredictMarket", function () {
       ).wait();
       await (await bookie.grantRole(RESOLVER_ROLE, owner.address)).wait();
       //create event
-      const eventId = 23;
+      const eventId = 25;
       const startTime = Math.floor(Date.now() / 1000);
       const expireTime = Math.floor(new Date("2024-02-09").getTime() / 1000);
       console.log("expireTime: ", expireTime);
-      const marketId = 28;
       await (
         await predictMarket.createEvent(eventId, startTime, expireTime, [
-          marketId,
+          461168601971587809319n,
+          461168601971587809320n,
         ])
       ).wait();
-      //buy position
-      const oddId = 35;
-      let _id = BigInt(eventId);
-      _id = (_id << BigInt(32)) + BigInt(marketId);
-      _id = (_id << BigInt(32)) + BigInt(oddId);
-      const outcomeId = ethers.parseEther(ethers.formatEther(_id));
-      console.log("outcomeId: ", outcomeId);
       await (
         await predictMarket
           .connect(otherAccount)
-          .buyPosition(10000000, 424275113815578771491n)
+          .buyPosition(10000000, 461168601971587809319n)
       ).wait();
       expect(((await predictMarket.getPosition(1)) as any)[5]).to.equal(1);
       //resolve initial
