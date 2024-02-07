@@ -10,6 +10,7 @@
     "Batching": "0xc83797e44b0186952b7559c2B60b2A83e4019093",
     "Batching-implemented": "0x11dF40d2BF46Cbc9D568A6153c6C4483C74D53E5",
     "PredictMarket": "0xe0306c458fbbd64C0B88F9590512eD49750c22Bd",
-    "PredictMarket-implemented": "0xDd02DCb76212736c5E232614b53fC7059A32ED10"
+    "PredictMarket-implemented": "0x5c2857f24523Cb2e02Eda5164143C548EB865Ce9",
+    "PredictMarket-implemented-old": "0xDd02DCb76212736c5E232614b53fC7059A32ED10"
   }
 }

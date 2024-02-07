@@ -327,6 +327,13 @@ contract PredictMarket is OwnableUpgradeable, Base {
         return _getPosition(posId);
     }
 
+    function getTicketAmount(
+        uint256 ticketId,
+        uint256[] memory posIds
+    ) external view returns (uint88) {
+        return _getTicketAmount(ticketId, posIds);
+    }
+
     function getEventData(uint40 eventId) external view returns (Event memory) {
         PredictStorage storage $ = _getOwnStorage();
         return $.events[eventId];
@@ -479,5 +486,22 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 );
             }
         }
+    }
+
+    function _getTicketAmount(
+        uint256 ticketId,
+        uint256[] memory posIds
+    ) private view returns (uint88) {
+        PredictStorage storage $ = _getOwnStorage();
+        uint88 posAmount;
+        for (uint i = 0; i < posIds.length; i++) {
+            if ($.positionTicket[posIds[i]] != ticketId) {
+                posAmount = 0;
+                break;
+            }
+            (, , , uint88 _posAmount, , ) = _getPosition(posIds[i]);
+            posAmount += _posAmount;
+        }
+        return posAmount;
     }
 }
