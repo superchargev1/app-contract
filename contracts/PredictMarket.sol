@@ -60,34 +60,47 @@ contract PredictMarket is OwnableUpgradeable, Base {
         address account,
         uint88 positionAmount,
         uint256 posId,
-        uint256 ticketId
+        uint256 ticketId,
+        uint256 fee
     );
     event TicketSell(
         uint256 ticketId,
         uint88 posAmount,
         uint88 returnAmount,
-        address account
+        address account,
+        uint256 fee
     );
 
     struct PredictStorage {
         uint256 initializeTime;
         uint256 lastPosId;
+        uint256 systemPnlFee;
         mapping(uint40 => Event) events;
         mapping(uint256 => Position) positions;
+        //tracking the total outcomeVolume and eventVolume
         mapping(uint256 => uint88) totalOcVolume;
         mapping(uint40 => uint88) totalEventVolume;
+        //tracking the total outcomeVolume and eventVolume when event in initialize time
         mapping(uint40 => uint88) totalEventVolumeInitial;
         mapping(uint256 => uint88) totalOcVolumeInitial;
+        //tracking the outcome which is winner or loser
         mapping(uint256 => bool) isOutcomeWinner;
+        //total win and lost and pnlFee when event closed
         mapping(uint40 => uint88) totalWinEvent;
         mapping(uint40 => uint88) totalLostEvent;
+        mapping(uint40 => uint88) totalPnlFee;
+        //tickets
         mapping(uint256 => Ticket) tickets;
+        //tracking the ticket which position belongs to
         mapping(uint256 => uint256) positionTicket;
+        //tracking the event which outcome belongs to
         mapping(uint256 => uint40) outcomeEvent;
         Credit credit;
         uint32 rake;
         //trading fee
         uint32 tradingFee;
+        //pnl fee
+        uint32 pnlFee;
     }
 
     // keccak256(abi.encode(uint256(keccak256("supercharge.storage.predictmarket")) - 1)) & ~bytes32(uint256(0xff))
@@ -113,6 +126,8 @@ contract PredictMarket is OwnableUpgradeable, Base {
         $.rake = 10;
         //tradingFee base 1000
         $.tradingFee = 5;
+        //pnlFee base 1000
+        $.pnlFee = 50;
     }
 
     function createEvent(
@@ -158,11 +173,12 @@ contract PredictMarket is OwnableUpgradeable, Base {
             "Event expired"
         );
         uint88 positionAmount;
+        uint88 fee;
         uint256 ticketId = buildTicketId(msg.sender, outcome);
         if ($.events[eventId].status == EVENT_STATUS_POOL_INITIALIZE) {
             $.lastPosId++;
             //calculate the trading fee
-            uint88 fee = (amount * $.tradingFee) / 1000;
+            fee = (amount * $.tradingFee) / 1000;
             uint88 rAmount = amount - fee;
             $.totalEventVolume[eventId] += rAmount;
             $.totalOcVolume[outcome] += rAmount;
@@ -183,7 +199,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
         } else if ($.events[eventId].status == EVENT_STATUS_OPEN) {
             $.lastPosId++;
             //calculate the trading fee
-            uint88 fee = (amount * $.tradingFee) / 1000;
+            fee = (amount * $.tradingFee) / 1000;
             uint88 rAmount = amount - fee;
             //calculate the price and position
             $.totalEventVolume[eventId] += rAmount;
@@ -215,7 +231,8 @@ contract PredictMarket is OwnableUpgradeable, Base {
             msg.sender,
             positionAmount,
             $.lastPosId,
-            ticketId
+            ticketId,
+            uint256(fee)
         );
     }
 
@@ -268,7 +285,8 @@ contract PredictMarket is OwnableUpgradeable, Base {
             ticketId,
             posAmount,
             (amount - (amount * $.tradingFee) / 1000),
-            msg.sender
+            msg.sender,
+            fee
         );
     }
 
@@ -309,6 +327,12 @@ contract PredictMarket is OwnableUpgradeable, Base {
             $.totalLostEvent[eventId] += $.totalOcVolume[loserOutcomes[i]];
             $.isOutcomeWinner[loserOutcomes[i]] = false;
         }
+        //calculate the pnlFee
+        $.totalPnlFee[eventId] =
+            (($.totalWinEvent[eventId] + $.totalLostEvent[eventId]) *
+                $.pnlFee) /
+            1000;
+        $.systemPnlFee += uint256($.totalPnlFee[eventId]);
         $.events[eventId].status = EVENT_STATUS_CLOSED;
     }
 
@@ -331,6 +355,23 @@ contract PredictMarket is OwnableUpgradeable, Base {
     function getEventData(uint40 eventId) external view returns (Event memory) {
         PredictStorage storage $ = _getOwnStorage();
         return $.events[eventId];
+    }
+
+    function getEventByOutcome(
+        uint256 outcomeId
+    ) external view returns (uint40) {
+        PredictStorage storage $ = _getOwnStorage();
+        return $.outcomeEvent[outcomeId];
+    }
+
+    function getSystemPnlFee() external view returns (uint256) {
+        PredictStorage storage $ = _getOwnStorage();
+        return $.systemPnlFee;
+    }
+
+    function getPnlFeeByEvent(uint40 eventId) external view returns (uint88) {
+        PredictStorage storage $ = _getOwnStorage();
+        return $.totalPnlFee[eventId];
     }
 
     ////////////////////
@@ -361,6 +402,11 @@ contract PredictMarket is OwnableUpgradeable, Base {
     ) external onlyRole(OPERATOR_ROLE) {
         PredictStorage storage $ = _getOwnStorage();
         $.events[eventId].expireTime = newExpireTime;
+    }
+
+    function setPnlFee(uint32 newPnlFee) external onlyRole(OPERATOR_ROLE) {
+        PredictStorage storage $ = _getOwnStorage();
+        $.pnlFee = newPnlFee;
     }
 
     ////////////////////
@@ -426,8 +472,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
                     posAmount == $.tickets[ticketId].positionAmount,
                     "Event closed force to sell all"
                 );
-                uint88 totalVolume = $.totalWinEvent[eventId] +
-                    $.totalLostEvent[eventId];
+                uint88 totalVolume = _getTotalEventReturn(eventId);
                 uint88 price = totalVolume / $.totalWinEvent[eventId];
                 //calculate the amount must transfer to user
                 amount = uint88($.tickets[ticketId].positionAmount * price);
@@ -497,5 +542,15 @@ contract PredictMarket is OwnableUpgradeable, Base {
             posAmount += _posAmount;
         }
         return posAmount;
+    }
+
+    function _getTotalEventReturn(
+        uint40 eventId
+    ) internal view returns (uint88) {
+        PredictStorage storage $ = _getOwnStorage();
+        return
+            $.totalWinEvent[eventId] +
+            $.totalLostEvent[eventId] -
+            $.totalPnlFee[eventId];
     }
 }
