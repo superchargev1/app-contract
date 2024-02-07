@@ -16,8 +16,6 @@ struct Event {
     uint256 startTime;
     //third block;
     uint256 expireTime;
-    //fourth block;
-    uint256 marketHash;
 }
 
 struct Position {
@@ -73,7 +71,6 @@ contract PredictMarket is OwnableUpgradeable, Base {
 
     struct PredictStorage {
         uint256 initializeTime;
-        uint256 eventCount;
         uint256 lastPosId;
         mapping(uint40 => Event) events;
         mapping(uint256 => Position) positions;
@@ -86,6 +83,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
         mapping(uint40 => uint88) totalLostEvent;
         mapping(uint256 => Ticket) tickets;
         mapping(uint256 => uint256) positionTicket;
+        mapping(uint256 => uint40) outcomeEvent;
         Credit credit;
         uint32 rake;
         //trading fee
@@ -121,18 +119,17 @@ contract PredictMarket is OwnableUpgradeable, Base {
         uint40 eventId,
         uint256 startTime,
         uint256 expireTime,
-        uint40[] memory marketIds
+        uint256[] memory outcomeIds
     ) external onlyRole(OPERATOR_ROLE) {
         PredictStorage storage $ = _getOwnStorage();
-        require($.events[eventId].marketHash == 0, "Event Already Existed");
+        require($.events[eventId].status == 0, "Event Already Existed");
 
         $.events[eventId].status = EVENT_STATUS_POOL_INITIALIZE;
         $.events[eventId].startTime = startTime;
         $.events[eventId].expireTime = expireTime;
-        $.events[eventId].marketHash = uint256(
-            keccak256(abi.encodePacked(marketIds))
-        );
-        $.eventCount++;
+        for (uint i = 0; i < outcomeIds.length; i++) {
+            $.outcomeEvent[outcomeIds[i]] = eventId;
+        }
         emit EventCreated(eventId);
     }
 
@@ -148,6 +145,9 @@ contract PredictMarket is OwnableUpgradeable, Base {
         require(amount <= $.credit.getCredit(msg.sender), "Not enough credit");
         //check condition
         uint40 eventId = uint40(outcome >> 64);
+        console.log("eventId: ", eventId);
+        require($.events[eventId].status != 0, "Event not existed");
+        require($.outcomeEvent[outcome] == eventId, "Invalid outcome");
         require(
             $.events[eventId].status != EVENT_STATUS_CLOSED &&
                 $.events[eventId].status != EVENT_STATUS_CANCEL,
@@ -209,7 +209,6 @@ contract PredictMarket is OwnableUpgradeable, Base {
             //transfer credit
             $.credit.predicMarketTransferFrom(msg.sender, amount, fee);
         }
-
         emit TicketBuy(
             amount,
             outcome,
@@ -295,11 +294,6 @@ contract PredictMarket is OwnableUpgradeable, Base {
         uint40[] memory loserOutcomes
     ) external onlyRole(RESOLVER_ROLE) {
         PredictStorage storage $ = _getOwnStorage();
-        require(
-            $.events[eventId].marketHash ==
-                uint256(keccak256(abi.encodePacked(marketIds))),
-            "Invalid marketIds"
-        );
         require(
             $.events[eventId].status == EVENT_STATUS_OPEN,
             "Invalid event status"

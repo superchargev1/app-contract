@@ -75,7 +75,7 @@ describe("PredictMarket", function () {
       await (await credit.topupSystem(1000000000000)).wait();
       expect(await credit.platformCredit()).to.equal(1000000000000);
     });
-    it.only("Should topup user success", async function () {
+    it("Should topup user success", async function () {
       const { predictMarket, bookie, mockUSDC, credit, owner, otherAccount } =
         await loadFixture(deployX1000V2Fixture);
       await (
@@ -108,7 +108,7 @@ describe("PredictMarket", function () {
       await (await credit.connect(otherAccount).topup(1000000000)).wait();
       expect(await credit.getCredit(otherAccount.address)).to.equal(1000000000);
     });
-    it.only("Should create event success", async function () {
+    it("Should create event success", async function () {
       const { predictMarket, bookie, mockUSDC, credit, owner, otherAccount } =
         await loadFixture(deployX1000V2Fixture);
       await (
@@ -151,7 +151,7 @@ describe("PredictMarket", function () {
         ])
       ).wait();
     });
-    it.only("Should open position success", async function () {
+    it("Should open position success", async function () {
       const { predictMarket, bookie, mockUSDC, credit, owner, otherAccount } =
         await loadFixture(deployX1000V2Fixture);
       await (
@@ -270,26 +270,27 @@ describe("PredictMarket", function () {
       ).wait();
       await (await bookie.grantRole(RESOLVER_ROLE, owner.address)).wait();
       //create event
-      const eventId = 1;
+      const eventId = 23;
       const startTime = Math.floor(Date.now() / 1000);
-      const expireTime = Math.floor(new Date("2024-02-05").getTime() / 1000);
+      const expireTime = Math.floor(new Date("2024-02-09").getTime() / 1000);
       console.log("expireTime: ", expireTime);
-      const marketId = 1;
+      const marketId = 28;
       await (
         await predictMarket.createEvent(eventId, startTime, expireTime, [
           marketId,
         ])
       ).wait();
       //buy position
-      const oddId = 1;
+      const oddId = 35;
       let _id = BigInt(eventId);
       _id = (_id << BigInt(32)) + BigInt(marketId);
       _id = (_id << BigInt(32)) + BigInt(oddId);
       const outcomeId = ethers.parseEther(ethers.formatEther(_id));
+      console.log("outcomeId: ", outcomeId);
       await (
         await predictMarket
           .connect(otherAccount)
-          .buyPosition(10000000, outcomeId)
+          .buyPosition(10000000, 424275113815578771491n)
       ).wait();
       expect(((await predictMarket.getPosition(1)) as any)[5]).to.equal(1);
       //resolve initial
@@ -298,7 +299,7 @@ describe("PredictMarket", function () {
         2
       );
     });
-    it.only("Should buy position afer resolve initial success", async function () {
+    it("Should buy position afer resolve initial success", async function () {
       const { predictMarket, bookie, mockUSDC, credit, owner, otherAccount } =
         await loadFixture(deployX1000V2Fixture);
       await (
