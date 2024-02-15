@@ -10,6 +10,10 @@ async function main() {
     ["string"],
     ["RESOLVER_ROLE"]
   );
+  const BOOKER_ROLE = ethers.solidityPackedKeccak256(
+    ["string"],
+    ["BOOKER_ROLE"]
+  );
   const X1000_BATCHER_ROLE = ethers.solidityPackedKeccak256(
     ["string"],
     ["X1000_BATCHER_ROLE"]
@@ -40,6 +44,7 @@ async function main() {
   const batcherClose = "0x59Ac71331D0431F90381da339A434adD3d49A86a";
   const batcherClose2 = "0x60dcD17C44D905967a704F0091396f6EbFa2fb8F";
   const batcherClose3 = "0x34d08Bcb36895c9d7B2b116Cdd1A0263Bd42a398";
+  const booker = "0x9aDAB1499D78C02ea83Ea1ccEcf733B5b3522913";
 
   const [deployer] = await ethers.getSigners();
   const contracts = getContracts();
@@ -53,30 +58,31 @@ async function main() {
   );
   await (await bookie.grantRole(OPERATOR_ROLE, operator1)).wait();
   await (await bookie.grantRole(RESOLVER_ROLE, resolver1)).wait();
-  // await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher)).wait();
-  // await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher2)).wait();
-  // await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher3)).wait();
-  // await (await bookie.grantRole(X1000_BATCHER_BURN_ROLE, batcherBurn)).wait();
-  // await (await bookie.grantRole(X1000_BATCHER_BURN_ROLE, batcherBurn2)).wait();
-  // await (await bookie.grantRole(X1000_BATCHER_CLOSE_ROLE, batcherClose)).wait();
-  // await (
-  //   await bookie.grantRole(X1000_BATCHER_CLOSE_ROLE, batcherClose2)
-  // ).wait();
-  // await (
-  //   await bookie.grantRole(X1000_BATCHER_CLOSE_ROLE, batcherClose3)
-  // ).wait();
-  // await (
-  //   await bookie.setAddress(BATCHING, contracts?.[networkName]?.["Batching"])
-  // ).wait();
-  // await (
-  //   await bookie.setAddress(X1000, contracts?.[networkName]?.["X1000V2"])
-  // ).wait();
+  await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher)).wait();
+  await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher2)).wait();
+  await (await bookie.grantRole(X1000_BATCHER_ROLE, batcher3)).wait();
+  await (await bookie.grantRole(X1000_BATCHER_BURN_ROLE, batcherBurn)).wait();
+  await (await bookie.grantRole(X1000_BATCHER_BURN_ROLE, batcherBurn2)).wait();
+  await (await bookie.grantRole(X1000_BATCHER_CLOSE_ROLE, batcherClose)).wait();
+  await (
+    await bookie.grantRole(X1000_BATCHER_CLOSE_ROLE, batcherClose2)
+  ).wait();
+  await (
+    await bookie.grantRole(X1000_BATCHER_CLOSE_ROLE, batcherClose3)
+  ).wait();
+  await (
+    await bookie.setAddress(BATCHING, contracts?.[networkName]?.["Batching"])
+  ).wait();
+  await (
+    await bookie.setAddress(X1000, contracts?.[networkName]?.["X1000V2"])
+  ).wait();
   await (
     await bookie.setAddress(
       PREDICT_MARKET,
       contracts?.[networkName]?.["PredictMarket"]
     )
   ).wait();
+  await (await bookie.grantRole(BOOKER_ROLE, booker)).wait();
 }
 
 main()
