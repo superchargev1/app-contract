@@ -8189,7 +8189,7 @@
             "label": "bookie",
             "offset": 0,
             "slot": "0",
-            "type": "t_contract(IBookie)6355",
+            "type": "t_contract(IBookie)6459",
             "contract": "Base",
             "src": "contracts/libs/Base.sol:13"
           },
@@ -8245,7 +8245,7 @@
             "label": "uint64",
             "numberOfBytes": "8"
           },
-          "t_contract(IBookie)6355": {
+          "t_contract(IBookie)6459": {
             "label": "contract IBookie",
             "numberOfBytes": "20"
           }
