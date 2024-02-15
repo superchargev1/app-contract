@@ -524,6 +524,14 @@ contract PredictMarket is OwnableUpgradeable, Base {
         $.buySlippage = newBuySlippage;
     }
 
+    function setThreshold(
+        uint40 eventId,
+        uint256 newThreshold
+    ) external onlyRole(OPERATOR_ROLE) {
+        PredictStorage storage $ = _getOwnStorage();
+        $.events[eventId].threshold = newThreshold;
+    }
+
     ////////////////////
     /////// PRIVATE ////
     ////////////////////
