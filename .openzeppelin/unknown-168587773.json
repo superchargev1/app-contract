@@ -231,11 +231,6 @@
       "kind": "transparent"
     },
     {
-      "address": "0xFE6BB1AFe2340CC9fef66f9f2ea569954A0112Ea",
-      "txHash": "0x00e9b72cf29e6e76adfff1218d33d836a0d46177e66b36ff57a9ff52914cbee8",
-      "kind": "transparent"
-    },
-    {
       "address": "0x1C1F70965D3AC1B3EEAf634d6aF649dC31554A6F",
       "txHash": "0x89ea52fe1293584baa74572d4403776409a462132a3da7111d90f86a05b9a250",
       "kind": "transparent"
@@ -273,11 +268,6 @@
     {
       "address": "0x004127f4050B35eA5b5b69322884d2F9825Fc9d1",
       "txHash": "0xbb1bba393ee623f7c2f45a5a9b14a963997daf350ffe198cae88299df08ef737",
-      "kind": "transparent"
-    },
-    {
-      "address": "0xAA5CA4e1abF208E53F6a73f9dF0CCe8437238955",
-      "txHash": "0x78e5d9748edb9acc342adb39e525a4e8146f0d1a914b9c341d6eb5879326549b",
       "kind": "transparent"
     },
     {
@@ -8190,8 +8180,8 @@
       }
     },
     "eaa1a0c0473abd1c64accf65ec35f3ef3577d48560f883031f96abb61250abd3": {
-      "address": "0x41208C44Ab9318dbAd3f5B74427E92e7b68916Cb",
-      "txHash": "0xeb1a064921fc40f1631729b718f76b6a24451cf0c0585b78efece08cacce19ab",
+      "address": "0xAA5CA4e1abF208E53F6a73f9dF0CCe8437238955",
+      "txHash": "0x78e5d9748edb9acc342adb39e525a4e8146f0d1a914b9c341d6eb5879326549b",
       "layout": {
         "solcVersion": "0.8.20",
         "storage": [
@@ -12113,7 +12103,7 @@
             "label": "bookie",
             "offset": 0,
             "slot": "0",
-            "type": "t_contract(IBookie)6446",
+            "type": "t_contract(IBookie)6545",
             "contract": "Base",
             "src": "contracts/libs/Base.sol:13"
           },
@@ -12169,7 +12159,7 @@
             "label": "uint64",
             "numberOfBytes": "8"
           },
-          "t_contract(IBookie)6446": {
+          "t_contract(IBookie)6545": {
             "label": "contract IBookie",
             "numberOfBytes": "20"
           }
@@ -12204,7 +12194,13 @@
             }
           ]
         }
-      }
+      },
+      "allAddresses": [
+        "0x987063CaC878a3E325F58E1B98958BC73657126E",
+        "0x07855b26248915be1489a2740DbDcED6c57EAcC9",
+        "0x7e872F9cD24B9F74CcFac3EB969B5CBF04d8c64E",
+        "0x3413ccA37Bd460fD10209064A3B3C44dFf00e5B9"
+      ]
     },
     "d2678a2ce1ffcd2cd6d607b935cc180872baf9c186405e1206b36fcb9963441b": {
       "address": "0x92d023642BdB09705bD6b09b854A899995C6dD74",
