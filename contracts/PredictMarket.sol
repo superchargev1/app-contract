@@ -544,8 +544,8 @@ contract PredictMarket is OwnableUpgradeable, Base {
         return
             uint88(
                 posAmount -
-                    (posAmount * totalOcVolume * 1000) /
-                    (totalEventVolume * $.buySlippage)
+                    (posAmount * totalOcVolume * totalOcVolume * 1000) /
+                    (totalEventVolume * totalEventVolume * $.buySlippage)
             );
     }
 
