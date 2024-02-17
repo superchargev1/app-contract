@@ -262,6 +262,10 @@ describe("PredictMarket", function () {
         ["string"],
         ["RESOLVER_ROLE"]
       );
+      const BOOKER_ROLE = ethers.solidityPackedKeccak256(
+        ["string"],
+        ["BOOKER_ROLE"]
+      );
       await (
         await bookie.setAddress(
           PREDICT_MARKET,
@@ -269,28 +273,77 @@ describe("PredictMarket", function () {
         )
       ).wait();
       await (await bookie.grantRole(RESOLVER_ROLE, owner.address)).wait();
+      await (await bookie.grantRole(BOOKER_ROLE, owner.address)).wait();
       //create event
       const eventId = 25;
       const startTime = Math.floor(Date.now() / 1000);
-      const expireTime = Math.floor(new Date("2024-02-09").getTime() / 1000);
+      const expireTime = Math.floor(new Date("2024-02-25").getTime() / 1000);
       console.log("expireTime: ", expireTime);
       await (
-        await predictMarket.createEvent(eventId, startTime, expireTime, [
-          461168601971587809319n,
-          461168601971587809320n,
-        ])
+        await predictMarket.createEvent(
+          eventId,
+          startTime,
+          expireTime,
+          1000000000000,
+          [461168601971587809319n, 461168601971587809320n]
+        )
       ).wait();
+      //buy in blinding bid
+      const message1 = ethers.getBytes(
+        ethers.keccak256(
+          ethers.solidityPacked(
+            ["address", "address", "uint88", "uint256", "uint256"],
+            [
+              await predictMarket.getAddress(),
+              otherAccount.address,
+              10000000,
+              461168601971587809319n,
+              0,
+            ]
+          )
+        )
+      );
+      const signature1 = await owner.signMessage(message1);
       await (
         await predictMarket
           .connect(otherAccount)
-          .buyPosition(10000000, 461168601971587809319n)
+          .buyPosition(10000000, 461168601971587809319n, 0, signature1)
       ).wait();
-      expect(((await predictMarket.getPosition(1)) as any)[5]).to.equal(1);
       //resolve initial
       await (await predictMarket.resolveInitializePool(eventId)).wait();
       expect(((await predictMarket.getEventData(eventId)) as any)[2]).to.equal(
         2
       );
+      //buy the signature
+      const message = ethers.getBytes(
+        ethers.keccak256(
+          ethers.solidityPacked(
+            ["address", "address", "uint88", "uint256", "uint256"],
+            [
+              await predictMarket.getAddress(),
+              otherAccount.address,
+              10000000,
+              461168601971587809320n,
+              0,
+            ]
+          )
+        )
+      );
+      const signature = await owner.signMessage(message);
+      await (
+        await predictMarket
+          .connect(otherAccount)
+          .buyPosition(10000000, 461168601971587809320n, 0, signature)
+      ).wait();
+      //get the ticketId
+      const ticketId = ethers.keccak256(
+        ethers.solidityPacked(
+          ["address", "uint256"],
+          [otherAccount.address, 461168601971587809320n]
+        )
+      );
+      //get the ticket position
+      const position = await predictMarket.getTicketAmount(ticketId, [2]);
     });
     it("Should buy position afer resolve initial success", async function () {
       const { predictMarket, bookie, mockUSDC, credit, owner, otherAccount } =

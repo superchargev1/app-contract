@@ -254,15 +254,19 @@ contract PredictMarket is OwnableUpgradeable, Base {
                         ($.totalOcVolume[outcome] * (100 + $.rake))
                 );
             }
+            console.log("price: ", price);
             //calculate the position
             positionAmount = uint88(price * rAmount);
+            console.log("positionAmount: ", positionAmount);
             //calculate the slippage
             uint88 slippage = _calBuySlippage(
                 positionAmount,
                 $.totalEventVolume[eventId],
                 $.totalOcVolume[outcome]
             );
+            console.log("slippage: ", slippage);
             positionAmount -= slippage;
+            console.log("positionAmount 2: ", positionAmount);
             Position memory newPos = Position(
                 POSITION_STATUS_OPEN,
                 price,
@@ -277,6 +281,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
             //transfer credit
             $.credit.predicMarketTransferFrom(msg.sender, amount, fee);
         }
+        console.log("positionAmount 3: ", positionAmount);
         emit TicketBuy(
             amount,
             outcome,
@@ -666,6 +671,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 );
                 //calculate the position
                 uint88 position = uint88(price * pos.amount);
+                console.log("position amount in bidding time: ", position);
                 return (
                     pos.outcomeId,
                     price,
