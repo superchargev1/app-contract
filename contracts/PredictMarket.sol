@@ -297,7 +297,13 @@ contract PredictMarket is OwnableUpgradeable, Base {
         PredictStorage storage $ = _getOwnStorage();
         //check the signature
         bytes32 hash = keccak256(
-            abi.encodePacked(msg.sender, ticketId, posAmount, posIds)
+            abi.encodePacked(
+                address(this),
+                msg.sender,
+                ticketId,
+                posAmount,
+                posIds
+            )
         );
         address recoverBooker = MessageHashUtils
             .toEthSignedMessageHash(hash)
@@ -316,10 +322,6 @@ contract PredictMarket is OwnableUpgradeable, Base {
         require(
             $.positions[posIds[0]].account == msg.sender,
             "Invalid account"
-        );
-        require(
-            posAmount <= $.tickets[ticketId].positionAmount,
-            "Invalid amount"
         );
         uint256 _outcomeId = $.positions[posIds[0]].outcomeId;
         //calculate the next price if sell this position
