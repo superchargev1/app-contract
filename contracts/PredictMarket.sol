@@ -349,6 +349,8 @@ contract PredictMarket is OwnableUpgradeable, Base {
             eventId,
             ticketId
         );
+        console.log("posAmount sell: ", posAmount);
+        console.log("amount return when sell: ", amount);
         if (amount == 0) {
             revert("Ticket lost");
         }
@@ -572,14 +574,9 @@ contract PredictMarket is OwnableUpgradeable, Base {
         PredictStorage storage $ = _getOwnStorage();
         if (!$.tickets[ticketId].isFirstSell) {
             for (uint i = 0; i < posIds.length; i++) {
-                (
-                    uint256 _outcomeId,
-                    ,
-                    uint88 _amount,
-                    uint88 _position,
-                    ,
-
-                ) = _getPosition(posIds[i]);
+                (, , uint88 _amount, uint88 _position, , ) = _getPosition(
+                    posIds[i]
+                );
                 $.tickets[ticketId].amount += _amount;
                 $.tickets[ticketId].positionAmount += _position;
             }
@@ -592,24 +589,26 @@ contract PredictMarket is OwnableUpgradeable, Base {
         uint88 amount;
         //calculate the amount
         if ($.events[eventId].status == EVENT_STATUS_OPEN) {
-            uint88 eventVolumeBeforeSell = $.totalEventVolume[eventId];
             //calculate the sell amount by posAmount
             uint256 _outcomeId = $.positions[posIds[0]].outcomeId;
             uint88 sellAmount = ($.tickets[ticketId].amount * posAmount) /
                 $.tickets[ticketId].positionAmount;
+            console.log("sellAmount: ", sellAmount);
             $.totalEventVolume[eventId] -= sellAmount;
             $.totalOcVolume[_outcomeId] -= sellAmount;
+            console.log("totalEventVolume: ", $.totalEventVolume[eventId]);
+            console.log("totalOcVolume: ", $.totalOcVolume[_outcomeId]);
             //calculate the amount must transfer to user
-            //apply the slippage
-            amount = uint88(
-                ($.tickets[ticketId].positionAmount *
-                    $.totalOcVolume[_outcomeId]) /
-                    $.totalEventVolume[eventId] -
-                    ($.tickets[ticketId].positionAmount *
-                        ($.totalOcVolume[_outcomeId]) *
-                        sellAmount) /
-                    ($.totalEventVolume[eventId] * eventVolumeBeforeSell)
-            );
+            //if totalOutcomeVolume = 0 <=> user sell all the remain outcome volume => return exactly sellAmount
+            if ($.totalOcVolume[_outcomeId] == 0) {
+                amount = sellAmount;
+            } else {
+                //in case sell part of outcome volume => take the amount by equation
+                amount =
+                    sellAmount -
+                    (sellAmount * $.totalOcVolume[_outcomeId]) /
+                    $.totalEventVolume[eventId];
+            }
             //minus the sell position and sell amount
             $.tickets[ticketId].positionAmount -= posAmount;
             $.tickets[ticketId].amount -= sellAmount;
@@ -623,22 +622,12 @@ contract PredictMarket is OwnableUpgradeable, Base {
                     posAmount == $.tickets[ticketId].positionAmount,
                     "Event closed force to sell all"
                 );
-                uint88 eventVolumeBeforeSell = $.totalEventVolume[eventId];
                 uint88 sellAmount = $.tickets[ticketId].amount;
-                uint256 _outcomeId = $.positions[posIds[0]].outcomeId;
                 $.totalEventVolume[eventId] -= sellAmount;
                 $.totalOcVolume[_outcomeId] -= sellAmount;
                 //calculate the amount must transfer to user
                 //apply the slippage
-                amount = uint88(
-                    ($.tickets[ticketId].positionAmount *
-                        $.totalOcVolume[_outcomeId]) /
-                        $.totalEventVolume[eventId] -
-                        ($.tickets[ticketId].positionAmount *
-                            ($.totalOcVolume[_outcomeId]) *
-                            sellAmount) /
-                        ($.totalEventVolume[eventId] * eventVolumeBeforeSell)
-                );
+                amount = posAmount;
                 //minus the sell position and sell amount
                 $.tickets[ticketId].positionAmount = 0;
                 $.tickets[ticketId].amount = 0;
