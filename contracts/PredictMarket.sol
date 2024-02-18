@@ -254,15 +254,19 @@ contract PredictMarket is OwnableUpgradeable, Base {
                         ($.totalOcVolume[outcome] * (100 + $.rake))
                 );
             }
+            console.log("price: ", price);
             //calculate the position
             positionAmount = uint88(price * rAmount);
+            console.log("positionAmount: ", positionAmount);
             //calculate the slippage
             uint88 slippage = _calBuySlippage(
                 positionAmount,
                 $.totalEventVolume[eventId],
                 $.totalOcVolume[outcome]
             );
+            console.log("slippage: ", slippage);
             positionAmount -= slippage;
+            console.log("positionAmount 2: ", positionAmount);
             Position memory newPos = Position(
                 POSITION_STATUS_OPEN,
                 price,
@@ -277,6 +281,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
             //transfer credit
             $.credit.predicMarketTransferFrom(msg.sender, amount, fee);
         }
+        console.log("positionAmount 3: ", positionAmount);
         emit TicketBuy(
             amount,
             outcome,
@@ -297,7 +302,13 @@ contract PredictMarket is OwnableUpgradeable, Base {
         PredictStorage storage $ = _getOwnStorage();
         //check the signature
         bytes32 hash = keccak256(
-            abi.encodePacked(msg.sender, ticketId, posAmount, posIds)
+            abi.encodePacked(
+                address(this),
+                msg.sender,
+                ticketId,
+                posAmount,
+                posIds
+            )
         );
         address recoverBooker = MessageHashUtils
             .toEthSignedMessageHash(hash)
@@ -316,10 +327,6 @@ contract PredictMarket is OwnableUpgradeable, Base {
         require(
             $.positions[posIds[0]].account == msg.sender,
             "Invalid account"
-        );
-        require(
-            posAmount <= $.tickets[ticketId].positionAmount,
-            "Invalid amount"
         );
         uint256 _outcomeId = $.positions[posIds[0]].outcomeId;
         //calculate the next price if sell this position
@@ -664,6 +671,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 );
                 //calculate the position
                 uint88 position = uint88(price * pos.amount);
+                console.log("position amount in bidding time: ", position);
                 return (
                     pos.outcomeId,
                     price,
