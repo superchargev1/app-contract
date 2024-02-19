@@ -57,6 +57,8 @@ contract PredictMarket is OwnableUpgradeable, Base {
     uint8 public constant POSITION_STATUS_OPEN = 2;
     uint8 public constant POSITION_STATUS_CLOSE = 3;
 
+    uint256 public constant WEI6 = 10 ** 6;
+
     event EventCreated(uint40 eventId);
     event EventOpen(uint40 eventId);
     event TicketBuy(
@@ -242,7 +244,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 $.totalEventVolume[eventId] == 0 &&
                 $.totalOcVolume[outcome] == 0
             ) {
-                price = 1;
+                price = 10 ** 6;
                 $.totalEventVolume[eventId] += rAmount;
                 $.totalOcVolume[outcome] += rAmount;
             } else {
@@ -254,18 +256,19 @@ contract PredictMarket is OwnableUpgradeable, Base {
                     $.totalOcVolume[outcome] * (100 + $.rake)
                 ) {
                     price = uint40(
-                        $.totalEventVolume[eventId] / $.totalOcVolume[outcome]
+                        ($.totalEventVolume[eventId] * WEI6) /
+                            $.totalOcVolume[outcome]
                     );
                 } else {
                     price = uint40(
-                        ($.totalEventVolume[eventId] * 100) /
+                        ($.totalEventVolume[eventId] * 100 * WEI6) /
                             ($.totalOcVolume[outcome] * (100 + $.rake))
                     );
                 }
             }
             console.log("price: ", price);
             //calculate the position
-            positionAmount = uint88(price * rAmount);
+            positionAmount = uint88((price * rAmount) / WEI6);
             console.log("positionAmount: ", positionAmount);
             Position memory newPos = Position(
                 POSITION_STATUS_OPEN,
@@ -423,10 +426,10 @@ contract PredictMarket is OwnableUpgradeable, Base {
         return _getPosition(posId);
     }
 
-    function getTicketAmount(
+    function getTicketData(
         uint256 ticketId,
         uint256[] memory posIds
-    ) external view returns (uint88) {
+    ) external view returns (uint88, uint88) {
         return _getTicketAmount(ticketId, posIds);
     }
 
@@ -706,22 +709,27 @@ contract PredictMarket is OwnableUpgradeable, Base {
     function _getTicketAmount(
         uint256 ticketId,
         uint256[] memory posIds
-    ) private view returns (uint88) {
+    ) private view returns (uint88, uint88) {
         PredictStorage storage $ = _getOwnStorage();
         uint88 posAmount;
+        uint88 amount;
         if ($.tickets[ticketId].isFirstSell) {
-            return $.tickets[ticketId].positionAmount;
+            posAmount = $.tickets[ticketId].positionAmount;
+            amount = $.tickets[ticketId].amount;
         } else {
             for (uint i = 0; i < posIds.length; i++) {
                 if ($.positionTicket[posIds[i]] != ticketId) {
                     posAmount = 0;
                     break;
                 }
-                (, , , uint88 _posAmount, , ) = _getPosition(posIds[i]);
+                (, , uint88 _amount, uint88 _posAmount, , ) = _getPosition(
+                    posIds[i]
+                );
                 posAmount += _posAmount;
+                amount += _amount;
             }
         }
-        return posAmount;
+        return (posAmount, amount);
     }
 
     function _getTotalEventReturn(
