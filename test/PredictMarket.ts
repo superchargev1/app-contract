@@ -11,7 +11,9 @@ describe("PredictMarket", function () {
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
   async function deployX1000V2Fixture() {
-    const [owner, otherAccount] = await ethers.getSigners();
+    const [owner, otherAccount, otherAccount1, otherAccount2] =
+      await ethers.getSigners();
+
     //deploy Bookie
     const Bookie = await ethers.getContractFactory("Bookie", owner);
     const bookie = await upgrades.deployProxy(Bookie, [], {
@@ -50,7 +52,16 @@ describe("PredictMarket", function () {
         initializer: "initialize",
       }
     );
-    return { predictMarket, bookie, mockUSDC, credit, owner, otherAccount };
+    return {
+      predictMarket,
+      bookie,
+      mockUSDC,
+      credit,
+      owner,
+      otherAccount,
+      otherAccount1,
+      otherAccount2,
+    };
   }
 
   describe("Deployment", function () {
@@ -222,8 +233,16 @@ describe("PredictMarket", function () {
       expect(position[5]).to.equal(1);
     });
     it.only("Should resolve initial success", async function () {
-      const { predictMarket, bookie, mockUSDC, credit, owner, otherAccount } =
-        await loadFixture(deployX1000V2Fixture);
+      const {
+        predictMarket,
+        bookie,
+        mockUSDC,
+        credit,
+        owner,
+        otherAccount,
+        otherAccount1,
+        otherAccount2,
+      } = await loadFixture(deployX1000V2Fixture);
       await (
         await mockUSDC
           .connect(owner)
@@ -253,6 +272,38 @@ describe("PredictMarket", function () {
       //topup user
       await (await credit.connect(otherAccount).topup(2000000000)).wait();
       expect(await credit.getCredit(otherAccount.address)).to.equal(2000000000);
+      await (
+        await mockUSDC
+          .connect(owner)
+          .transfer(otherAccount1.address, 2000000000)
+      ).wait();
+      //approve mockUSDC to credit
+      await (
+        await mockUSDC
+          .connect(otherAccount1)
+          .approve(await credit.getAddress(), 2000000000)
+      ).wait();
+      //topup user
+      await (await credit.connect(otherAccount1).topup(2000000000)).wait();
+      expect(await credit.getCredit(otherAccount1.address)).to.equal(
+        2000000000
+      );
+      await (
+        await mockUSDC
+          .connect(owner)
+          .transfer(otherAccount2.address, 20000000000)
+      ).wait();
+      //approve mockUSDC to credit
+      await (
+        await mockUSDC
+          .connect(otherAccount2)
+          .approve(await credit.getAddress(), 20000000000)
+      ).wait();
+      //topup user
+      await (await credit.connect(otherAccount2).topup(20000000000)).wait();
+      expect(await credit.getCredit(otherAccount2.address)).to.equal(
+        20000000000
+      );
       //grant role
       const PREDICT_MARKET = ethers.solidityPackedKeccak256(
         ["string"],
@@ -342,6 +393,47 @@ describe("PredictMarket", function () {
           [otherAccount.address, 461168601971587809320n]
         )
       );
+      //add more liquidity to sell previous position
+      const message2 = ethers.getBytes(
+        ethers.keccak256(
+          ethers.solidityPacked(
+            ["address", "address", "uint88", "uint256", "uint256"],
+            [
+              await predictMarket.getAddress(),
+              otherAccount1.address,
+              100000000,
+              461168601971587809320n,
+              0,
+            ]
+          )
+        )
+      );
+      const signature2 = await owner.signMessage(message2);
+      await (
+        await predictMarket
+          .connect(otherAccount1)
+          .buyPosition(100000000, 461168601971587809320n, 0, signature2)
+      ).wait();
+      const message3 = ethers.getBytes(
+        ethers.keccak256(
+          ethers.solidityPacked(
+            ["address", "address", "uint88", "uint256", "uint256"],
+            [
+              await predictMarket.getAddress(),
+              otherAccount2.address,
+              10000000000,
+              461168601971587809320n,
+              0,
+            ]
+          )
+        )
+      );
+      const signature3 = await owner.signMessage(message3);
+      await (
+        await predictMarket
+          .connect(otherAccount2)
+          .buyPosition(10000000000, 461168601971587809320n, 0, signature3)
+      ).wait();
       const messageSell = ethers.getBytes(
         ethers.keccak256(
           ethers.solidityPacked(
@@ -350,17 +442,75 @@ describe("PredictMarket", function () {
               await predictMarket.getAddress(),
               otherAccount.address,
               ticketId,
-              80573039,
+              995000000,
               [2],
             ]
           )
         )
       );
+
       const signatureSell = await owner.signMessage(messageSell);
       await (
         await predictMarket
           .connect(otherAccount)
-          .sellPosition(ticketId, 80573039, [2], signatureSell)
+          .sellPosition(ticketId, 995000000, [2], signatureSell)
+      ).wait();
+      //get the ticket of otherAccount1
+      const ticketId1 = ethers.keccak256(
+        ethers.solidityPacked(
+          ["address", "uint256"],
+          [otherAccount1.address, 461168601971587809320n]
+        )
+      );
+      const messageSell1 = ethers.getBytes(
+        ethers.keccak256(
+          ethers.solidityPacked(
+            ["address", "address", "uint256", "uint88", "uint256[]"],
+            [
+              await predictMarket.getAddress(),
+              otherAccount1.address,
+              ticketId1,
+              497000000,
+              [3],
+            ]
+          )
+        )
+      );
+
+      const signatureSell1 = await owner.signMessage(messageSell1);
+      await (
+        await predictMarket
+          .connect(otherAccount1)
+          .sellPosition(ticketId1, 497000000, [3], signatureSell1)
+      ).wait();
+
+      //get the ticket of otherAccount2
+      const ticketId2 = ethers.keccak256(
+        ethers.solidityPacked(
+          ["address", "uint256"],
+          [otherAccount2.address, 461168601971587809320n]
+        )
+      );
+      const messageSell2 = ethers.getBytes(
+        ethers.keccak256(
+          ethers.solidityPacked(
+            ["address", "address", "uint256", "uint88", "uint256[]"],
+            [
+              await predictMarket.getAddress(),
+              otherAccount2.address,
+              ticketId2,
+              9900000000,
+              [4],
+            ]
+          )
+        )
+      );
+
+      const signatureSell2 = await owner.signMessage(messageSell2);
+      await (
+        await predictMarket
+          .connect(otherAccount2)
+          .sellPosition(ticketId2, 9900000000, [4], signatureSell2)
       ).wait();
     });
     it("Should buy position afer resolve initial success", async function () {

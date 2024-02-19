@@ -236,37 +236,37 @@ contract PredictMarket is OwnableUpgradeable, Base {
             fee = (amount * $.tradingFee) / 1000;
             uint88 rAmount = amount - fee;
             //calculate the price and position
-            $.totalEventVolume[eventId] += rAmount;
-            $.totalOcVolume[outcome] += rAmount;
-            //calculate the price
-            //check if only one way market or not enough for rake
             uint40 price;
+            //handle in case totalEventVolume and totalOcVolume is 0
             if (
-                $.totalEventVolume[eventId] * 100 <
-                $.totalOcVolume[outcome] * (100 + $.rake)
+                $.totalEventVolume[eventId] == 0 &&
+                $.totalOcVolume[outcome] == 0
             ) {
-                price = uint40(
-                    $.totalEventVolume[eventId] / $.totalOcVolume[outcome]
-                );
+                price = 1;
+                $.totalEventVolume[eventId] += rAmount;
+                $.totalOcVolume[outcome] += rAmount;
             } else {
-                price = uint40(
-                    ($.totalEventVolume[eventId] * 100) /
-                        ($.totalOcVolume[outcome] * (100 + $.rake))
-                );
+                //handle if event already have volume
+                $.totalEventVolume[eventId] += rAmount;
+                $.totalOcVolume[outcome] += rAmount;
+                if (
+                    $.totalEventVolume[eventId] * 100 <
+                    $.totalOcVolume[outcome] * (100 + $.rake)
+                ) {
+                    price = uint40(
+                        $.totalEventVolume[eventId] / $.totalOcVolume[outcome]
+                    );
+                } else {
+                    price = uint40(
+                        ($.totalEventVolume[eventId] * 100) /
+                            ($.totalOcVolume[outcome] * (100 + $.rake))
+                    );
+                }
             }
             console.log("price: ", price);
             //calculate the position
             positionAmount = uint88(price * rAmount);
             console.log("positionAmount: ", positionAmount);
-            //calculate the slippage
-            uint88 slippage = _calBuySlippage(
-                positionAmount,
-                $.totalEventVolume[eventId],
-                $.totalOcVolume[outcome]
-            );
-            console.log("slippage: ", slippage);
-            positionAmount -= slippage;
-            console.log("positionAmount 2: ", positionAmount);
             Position memory newPos = Position(
                 POSITION_STATUS_OPEN,
                 price,
@@ -281,7 +281,6 @@ contract PredictMarket is OwnableUpgradeable, Base {
             //transfer credit
             $.credit.predicMarketTransferFrom(msg.sender, amount, fee);
         }
-        console.log("positionAmount 3: ", positionAmount);
         emit TicketBuy(
             amount,
             outcome,
@@ -491,6 +490,18 @@ contract PredictMarket is OwnableUpgradeable, Base {
         return $.rake;
     }
 
+    function getEventVolume(uint40 eventId) external view returns (uint88) {
+        PredictStorage storage $ = _getOwnStorage();
+        return $.totalEventVolume[eventId];
+    }
+
+    function getOutcomeVolume(
+        uint256 outcomeId
+    ) external view returns (uint88) {
+        PredictStorage storage $ = _getOwnStorage();
+        return $.totalOcVolume[outcomeId];
+    }
+
     ////////////////////
     /////// SETTER /////
     ////////////////////
@@ -594,24 +605,34 @@ contract PredictMarket is OwnableUpgradeable, Base {
             uint88 sellAmount = ($.tickets[ticketId].amount * posAmount) /
                 $.tickets[ticketId].positionAmount;
             console.log("sellAmount: ", sellAmount);
-            $.totalEventVolume[eventId] -= sellAmount;
-            $.totalOcVolume[_outcomeId] -= sellAmount;
+            // $.totalEventVolume[eventId] -= sellAmount;
+            // $.totalOcVolume[_outcomeId] -= sellAmount;
             console.log("totalEventVolume: ", $.totalEventVolume[eventId]);
             console.log("totalOcVolume: ", $.totalOcVolume[_outcomeId]);
             //calculate the amount must transfer to user
             //if totalOutcomeVolume = 0 <=> user sell all the remain outcome volume => return exactly sellAmount
-            if ($.totalOcVolume[_outcomeId] == 0) {
-                amount = sellAmount;
-            } else {
-                //in case sell part of outcome volume => take the amount by equation
+            if ($.totalOcVolume[_outcomeId] < sellAmount) {
                 amount =
                     sellAmount -
-                    (sellAmount * $.totalOcVolume[_outcomeId]) /
-                    $.totalEventVolume[eventId];
+                    (((sellAmount * (100 + $.rake)) *
+                        (sellAmount - $.totalOcVolume[_outcomeId])) /
+                        $.totalEventVolume[eventId]) /
+                    100;
+            } else {
+                amount =
+                    sellAmount +
+                    ((
+                        (sellAmount *
+                            ($.totalOcVolume[_outcomeId] - sellAmount))
+                    ) / $.totalEventVolume[eventId]);
             }
+            console.log("amount earn: ", amount);
             //minus the sell position and sell amount
             $.tickets[ticketId].positionAmount -= posAmount;
             $.tickets[ticketId].amount -= sellAmount;
+            //update the event volume and outcome volume
+            $.totalEventVolume[eventId] = $.totalEventVolume[eventId] - amount;
+            $.totalOcVolume[_outcomeId] = $.totalOcVolume[_outcomeId] - amount;
         } else if ($.events[eventId].status == EVENT_STATUS_CLOSED) {
             //calculate the price after event close
             uint256 _outcomeId = $.positions[posIds[0]].outcomeId;
