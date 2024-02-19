@@ -79,6 +79,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
         uint88 posLeft
     );
     event EventResolveInitialize(uint40 eventId);
+    event EventResolved(uint40 eventId);
 
     struct PredictStorage {
         uint256 initializeTime;
@@ -389,8 +390,8 @@ contract PredictMarket is OwnableUpgradeable, Base {
     function resolveEvent(
         uint40 eventId,
         uint40[] memory marketIds,
-        uint40[] memory winnerOutcomes,
-        uint40[] memory loserOutcomes
+        uint256[] memory winnerOutcomes,
+        uint256[] memory loserOutcomes
     ) external onlyRole(RESOLVER_ROLE) {
         PredictStorage storage $ = _getOwnStorage();
         require(
@@ -400,21 +401,14 @@ contract PredictMarket is OwnableUpgradeable, Base {
         require(winnerOutcomes.length == marketIds.length, "Invalid Input");
         //calculate the winner
         for (uint i = 0; i < winnerOutcomes.length; i++) {
-            $.totalWinEvent[eventId] += $.totalOcVolume[winnerOutcomes[i]];
             $.isOutcomeWinner[winnerOutcomes[i]] = true;
         }
         //calculate the loser
         for (uint i = 0; i < loserOutcomes.length; i++) {
-            $.totalLostEvent[eventId] += $.totalOcVolume[loserOutcomes[i]];
             $.isOutcomeWinner[loserOutcomes[i]] = false;
         }
-        //calculate the pnlFee
-        $.totalPnlFee[eventId] =
-            (($.totalWinEvent[eventId] + $.totalLostEvent[eventId]) *
-                $.pnlFee) /
-            1000;
-        $.systemPnlFee += uint256($.totalPnlFee[eventId]);
         $.events[eventId].status = EVENT_STATUS_CLOSED;
+        emit EventResolved(eventId);
     }
 
     ////////////////////
