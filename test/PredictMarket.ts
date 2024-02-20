@@ -426,7 +426,7 @@ describe("PredictMarket", function () {
         predictMarket,
         otherAccount,
         461168601971587809319n,
-        10000000000n,
+        100000000000n,
         owner
       );
       //buy another outcome
@@ -464,11 +464,11 @@ describe("PredictMarket", function () {
       console.log("ticketData: ", ticketData);
       console.log("eventVolume: ", eventVolume);
       console.log("outcomeVolume: ", outcomeVolume);
-      //sell
+      //sell all
       await sellPosition(
         predictMarket,
         otherAccount1,
-        110354544000n,
+        198177602000n,
         [2, 3],
         461168601971587809320n,
         owner
@@ -480,11 +480,48 @@ describe("PredictMarket", function () {
       console.log("eventVolume: ", eventVolume1);
       console.log("outcomeVolume: ", outcomeVolume1);
       //buy again
+      //pid 4
       await buyPosition(
         predictMarket,
         otherAccount1,
         461168601971587809320n,
         10000000n,
+        owner
+      );
+      //sell again
+      await sellPosition(
+        predictMarket,
+        otherAccount1,
+        90462036382n,
+        [2, 3, 4],
+        461168601971587809320n,
+        owner
+      );
+      //buy again
+      //pid 5
+      await buyPosition(
+        predictMarket,
+        otherAccount1,
+        461168601971587809320n,
+        10000000n,
+        owner
+      );
+      //buy again
+      //pid 6
+      await buyPosition(
+        predictMarket,
+        otherAccount,
+        461168601971587809320n,
+        1000000000n,
+        owner
+      );
+      //sell again
+      await sellPosition(
+        predictMarket,
+        otherAccount1,
+        90463590900n,
+        [2, 3, 4, 5],
+        461168601971587809320n,
         owner
       );
     });
