@@ -280,6 +280,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 outcome,
                 msg.sender
             );
+            $.tickets[ticketId].isFirstSell = false;
             $.positions[$.lastPosId] = newPos;
             $.positionTicket[$.lastPosId] = ticketId;
             //transfer credit
