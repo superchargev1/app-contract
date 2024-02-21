@@ -82,7 +82,7 @@ async function main() {
       contracts?.[networkName]?.["PredictMarket"]
     )
   ).wait();
-  await (await bookie.grantRole(BOOKER_ROLE, booker)).wait();
+  // await (await bookie.grantRole(BOOKER_ROLE, booker)).wait();
 }
 
 main()

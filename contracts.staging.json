@@ -9,9 +9,8 @@
     "X1000V2-implemented": "0x5F47fE31f79E70bb0a34C643dc2f304dc00A914B",
     "Batching": "0x24B7a0c1c0ed27729b98d30C10F1e64fad6C47f7",
     "Batching-implemented": "0x11dF40d2BF46Cbc9D568A6153c6C4483C74D53E5",
-    "PredictMarket": "0x01dDAE9Bb4d677E68dE9D227e1d81dc168F35E73",
-    "PredictMarket-implemented": "0xB94a9616f7608a1d53138bad7e9ecebdCf817040",
-    "PredictMarket-implemented-old": "0x6C739394aB4eb8217E42fdd207C3bE58Ec2E6dB2",
-    "Credit-implemented-old": "0x987063CaC878a3E325F58E1B98958BC73657126E"
+    "Credit-implemented-old": "0x987063CaC878a3E325F58E1B98958BC73657126E",
+    "PredictMarket": "0x94a03317Aa11A6ABc2ac482ef3d6cDfA40fF55B6",
+    "PredictMarket-implemented": "0x4432f4a44d6f078B4CAb6e5721cBAb26FBe8cA98"
   }
 }
