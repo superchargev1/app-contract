@@ -504,6 +504,14 @@ contract PredictMarket is OwnableUpgradeable, Base {
         $.minimumLiquidityPool = newMinimumLiquidityPool;
     }
 
+    function setOutcomeMinLiquid(
+        uint256 outcomeId,
+        uint88 newMinLiquid
+    ) external onlyRole(OPERATOR_ROLE) {
+        PredictStorage storage $ = _getOwnStorage();
+        $.outcomeMinLiquid[outcomeId] = newMinLiquid;
+    }
+
     ////////////////////
     /////// PRIVATE ////
     ////////////////////
