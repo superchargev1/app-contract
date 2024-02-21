@@ -76,14 +76,14 @@ describe("PredictMarket", function () {
     const message1 = ethers.getBytes(
       ethers.keccak256(
         ethers.solidityPacked(
-          ["address", "address", "uint88", "uint256", "uint256"],
-          [await contract.getAddress(), user.address, amount, outcome, 0]
+          ["address", "address", "uint88", "uint256"],
+          [await contract.getAddress(), user.address, amount, outcome]
         )
       )
     );
     const signature1 = await owner.signMessage(message1);
     await (
-      await contract.connect(user).buyPosition(amount, outcome, 0, signature1)
+      await contract.connect(user).buyPosition(amount, outcome, signature1)
     ).wait();
   }
 
@@ -91,7 +91,6 @@ describe("PredictMarket", function () {
     contract: Contract,
     user: HardhatEthersSigner,
     posAmount: BigInt,
-    posIds: Array<number>,
     outcomeId: BigInt,
     owner: HardhatEthersSigner
   ) {
@@ -101,13 +100,13 @@ describe("PredictMarket", function () {
     const messageSell = ethers.getBytes(
       ethers.keccak256(
         ethers.solidityPacked(
-          ["address", "address", "uint256", "uint88", "uint256[]"],
+          ["address", "address", "uint256", "uint88", "uint256"],
           [
             await contract.getAddress(),
             user.address,
             ticketId,
             posAmount,
-            posIds,
+            outcomeId,
           ]
         )
       )
@@ -117,7 +116,7 @@ describe("PredictMarket", function () {
     await (
       await contract
         .connect(user)
-        .sellPosition(ticketId, posAmount, posIds, signatureSell)
+        .sellPosition(ticketId, posAmount, outcomeId, signatureSell)
     ).wait();
   }
 
@@ -144,13 +143,12 @@ describe("PredictMarket", function () {
   async function getTicketData(
     contract: Contract,
     outcomeId: BigInt,
-    user: HardhatEthersSigner,
-    posIds: Array<number>
+    user: HardhatEthersSigner
   ) {
     const ticketId = ethers.keccak256(
       ethers.solidityPacked(["address", "uint256"], [user.address, outcomeId])
     );
-    return await contract.getTicketData(ticketId, posIds);
+    return await contract.getTicket(ticketId);
   }
 
   describe("Deployment", function () {
@@ -412,73 +410,52 @@ describe("PredictMarket", function () {
           eventId,
           startTime,
           expireTime,
-          1000000000000,
-          [461168601971587809319n, 461168601971587809320n]
+          100000000000,
+          [461168601971587809319n, 461168601971587809320n],
+          [5000000000, 5000000000],
+          [100000000, 100000000]
         )
       ).wait();
-      //buy in blinding bid
-      //resolve initial
-      await (await predictMarket.resolveInitializePool(eventId)).wait();
-      expect(((await predictMarket.getEventData(eventId)) as any)[2]).to.equal(
-        2
-      );
+
+      console.log("buy 1 ===================");
       await buyPosition(
         predictMarket,
         otherAccount,
         461168601971587809319n,
-        100000000000n,
+        100000000000n, // 100.000
         owner
       );
-      //buy another outcome
-      // await buyPosition(
-      //   predictMarket,
-      //   otherAccount,
-      //   461168601971587809320n,
-      //   1000000000n,
-      //   owner
-      // );
+      console.log("buy 2 ===================");
       await buyPosition(
         predictMarket,
         otherAccount1,
         461168601971587809320n,
-        100000000000n,
+        100000000000n, // 100.000
         owner
       );
+      console.log("buy 3 ===================");
       await buyPosition(
         predictMarket,
         otherAccount1,
         461168601971587809320n,
-        10000000000n,
+        10000000000n, //10.000
         owner
       );
-      const ticketData = await getTicketData(
-        predictMarket,
-        461168601971587809320n,
-        otherAccount1,
-        [2, 3]
-      );
+
       const eventVolume = await predictMarket.getEventVolume(eventId);
       const outcomeVolume = await predictMarket.getOutcomeVolume(
         461168601971587809320n
       );
-      console.log("ticketData: ", ticketData);
       console.log("eventVolume: ", eventVolume);
       console.log("outcomeVolume: ", outcomeVolume);
       //sell all
       await sellPosition(
         predictMarket,
         otherAccount1,
-        198177602000n,
-        [2, 3],
+        1000348900n,
         461168601971587809320n,
         owner
       );
-      const eventVolume1 = await predictMarket.getEventVolume(eventId);
-      const outcomeVolume1 = await predictMarket.getOutcomeVolume(
-        461168601971587809320n
-      );
-      console.log("eventVolume: ", eventVolume1);
-      console.log("outcomeVolume: ", outcomeVolume1);
       //buy again
       //pid 4
       await buyPosition(
@@ -493,34 +470,47 @@ describe("PredictMarket", function () {
         predictMarket,
         otherAccount1,
         90462036382n,
-        [2, 3, 4],
         461168601971587809320n,
         owner
       );
       //buy again
       //pid 5
+      console.log("buy 5 ======================");
       await buyPosition(
         predictMarket,
-        otherAccount1,
+        otherAccount,
         461168601971587809320n,
         10000000n,
         owner
       );
       //buy again
       //pid 6
+      console.log("buy 6 ======================");
       await buyPosition(
         predictMarket,
-        otherAccount,
+        otherAccount1,
         461168601971587809320n,
-        1000000000n,
+        100000000000n,
         owner
       );
+      const ticketData = await getTicketData(
+        predictMarket,
+        461168601971587809320n,
+        otherAccount
+      );
+      const eventVolume1 = await predictMarket.getEventVolume(eventId);
+      const outcomeVolume1 = await predictMarket.getOutcomeVolume(
+        461168601971587809320n
+      );
+      console.log("eventVolume: ", eventVolume1);
+      console.log("outcomeVolume: ", outcomeVolume1);
+      console.log("ticketData: ", ticketData);
       //sell again
+      console.log("sell 6 ======================");
       await sellPosition(
         predictMarket,
-        otherAccount1,
-        90463590900n,
-        [2, 3, 4, 5],
+        otherAccount,
+        20999246n,
         461168601971587809320n,
         owner
       );

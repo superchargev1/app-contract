@@ -56,7 +56,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
 
     uint256 public constant WEI6 = 10 ** 6;
 
-    event EventCreated(uint40 eventId, uint88 initialLiquid);
+    event EventCreated(uint40 eventId);
     event EventOpen(uint40 eventId);
     event TicketBuy(
         uint88 amount,
@@ -83,10 +83,14 @@ contract PredictMarket is OwnableUpgradeable, Base {
         uint256 lastPosId;
         uint256 systemPnlFee;
         mapping(uint40 => Event) events;
+        //tracking the maximum payout
+        mapping(uint40 => uint88) maxPayout;
         mapping(uint256 => Position) positions;
         //tracking the total outcomeVolume and eventVolume
         mapping(uint256 => uint88) totalOcVolume;
         mapping(uint40 => uint88) totalEventVolume;
+        //tracking the total outcome positions
+        mapping(uint256 => uint88) totalOutcomePosition;
         //tracking the outcome which is winner or loser
         mapping(uint256 => bool) isOutcomeWinner;
         //tickets
@@ -95,6 +99,8 @@ contract PredictMarket is OwnableUpgradeable, Base {
         mapping(uint256 => uint256) positionTicket;
         //tracking the event which outcome belongs to
         mapping(uint256 => uint40) outcomeEvent;
+        mapping(uint256 => uint88) outcomeMinLiquid;
+        mapping(uint256 => uint88) outcomeInitialLiquid;
         Credit credit;
         uint32 rake;
         //trading fee
@@ -103,7 +109,6 @@ contract PredictMarket is OwnableUpgradeable, Base {
         uint32 pnlFee;
         //buy slippage boost base 1000
         uint88 minimumLiquidityPool;
-        uint88 initialLiquid;
     }
 
     // keccak256(abi.encode(uint256(keccak256("supercharge.storage.predictmarket")) - 1)) & ~bytes32(uint256(0xff))
@@ -132,7 +137,6 @@ contract PredictMarket is OwnableUpgradeable, Base {
         //pnlFee base 1000
         $.pnlFee = 50;
         $.minimumLiquidityPool = 5000 * (10 ** 6);
-        $.initialLiquid = 100 * (10 ** 6);
     }
 
     function createEvent(
@@ -140,39 +144,39 @@ contract PredictMarket is OwnableUpgradeable, Base {
         uint256 startTime,
         uint256 expireTime,
         uint256 threshold,
-        uint256[] memory outcomeIds
+        uint256[] memory outcomeIds,
+        uint88[] memory outcomeMinLiquid,
+        uint88[] memory outcomeInitialLiquid
     ) external onlyRole(OPERATOR_ROLE) {
         PredictStorage storage $ = _getOwnStorage();
         require($.events[eventId].status == 0, "Event Already Existed");
-
+        require(
+            outcomeIds.length == outcomeMinLiquid.length &&
+                outcomeIds.length == outcomeInitialLiquid.length,
+            "Invalid input"
+        );
         $.events[eventId].status = EVENT_STATUS_OPEN;
         $.events[eventId].startTime = startTime;
         $.events[eventId].expireTime = expireTime;
         $.events[eventId].threshold = threshold;
         for (uint i = 0; i < outcomeIds.length; i++) {
             $.outcomeEvent[outcomeIds[i]] = eventId;
-            $.totalOcVolume[outcomeIds[i]] = $.initialLiquid;
-            $.totalEventVolume[eventId] += $.initialLiquid;
+            $.totalOcVolume[outcomeIds[i]] = outcomeInitialLiquid[i];
+            $.totalEventVolume[eventId] += outcomeInitialLiquid[i];
+            $.outcomeMinLiquid[outcomeIds[i]] = outcomeMinLiquid[i];
         }
-        emit EventCreated(eventId, $.initialLiquid);
+        emit EventCreated(eventId);
     }
 
     function buyPosition(
         uint88 amount,
         uint256 outcome,
-        uint256 maxPayout,
         bytes memory signature
     ) external {
         PredictStorage storage $ = _getOwnStorage();
         //check the signature
         bytes32 hash = keccak256(
-            abi.encodePacked(
-                address(this),
-                msg.sender,
-                amount,
-                outcome,
-                maxPayout
-            )
+            abi.encodePacked(address(this), msg.sender, amount, outcome)
         );
         address recoverBooker = MessageHashUtils
             .toEthSignedMessageHash(hash)
@@ -196,12 +200,7 @@ contract PredictMarket is OwnableUpgradeable, Base {
             block.timestamp <= $.events[eventId].expireTime,
             "Event expired"
         );
-        //check the threshold
-        require(
-            $.totalEventVolume[eventId] + amount <=
-                maxPayout + $.events[eventId].threshold,
-            "Threshold reached"
-        );
+
         uint88 positionAmount;
         uint88 fee;
         uint256 ticketId = _buildTicketId(msg.sender, outcome);
@@ -218,27 +217,37 @@ contract PredictMarket is OwnableUpgradeable, Base {
             $.totalOcVolume[outcome] += rAmount;
         } else {
             //handle if event already have volume
+            console.log("run here ====>", $.totalEventVolume[eventId]);
+            console.log("11111111 ========>", $.totalOcVolume[outcome]);
             $.totalEventVolume[eventId] += rAmount;
             $.totalOcVolume[outcome] += rAmount;
-            if (
-                $.totalEventVolume[eventId] * 100 <
-                $.totalOcVolume[outcome] * (100 + $.rake)
-            ) {
-                price = uint40(
-                    ($.totalEventVolume[eventId] * WEI6) /
-                        $.totalOcVolume[outcome]
-                );
-            } else {
-                price = uint40(
-                    ($.totalEventVolume[eventId] * 100 * WEI6) /
-                        ($.totalOcVolume[outcome] * (100 + $.rake))
-                );
-            }
+            price = uint40(
+                ($.totalEventVolume[eventId] * 100 * WEI6) /
+                    ($.totalOcVolume[outcome] * (100 + $.rake))
+            );
         }
         console.log("price: ", price);
         //calculate the position
         positionAmount = uint88((price * rAmount) / WEI6);
-        console.log("positionAmount: ", positionAmount);
+        console.log("positionAmount ==========>", positionAmount);
+        //check the threshold
+        if (
+            $.totalOutcomePosition[outcome] + positionAmount >
+            $.maxPayout[eventId]
+        ) {
+            console.log("run here 2323232323", $.totalEventVolume[eventId]);
+            require(
+                $.totalEventVolume[eventId] + $.events[eventId].threshold >=
+                    $.totalOutcomePosition[outcome] + positionAmount,
+                "Threshold reached"
+            );
+        } else {
+            require(
+                $.totalEventVolume[eventId] + $.events[eventId].threshold >=
+                    $.maxPayout[eventId],
+                "Threshold reached"
+            );
+        }
         Position memory newPos = Position(
             POSITION_STATUS_OPEN,
             price,
@@ -247,6 +256,8 @@ contract PredictMarket is OwnableUpgradeable, Base {
             outcome,
             msg.sender
         );
+        $.maxPayout[eventId] = $.totalOutcomePosition[outcome] + positionAmount;
+        $.totalOutcomePosition[outcome] += positionAmount;
         $.tickets[ticketId].amount += rAmount;
         $.tickets[ticketId].positionAmount += positionAmount;
         $.positions[$.lastPosId] = newPos;
@@ -306,6 +317,10 @@ contract PredictMarket is OwnableUpgradeable, Base {
                 "Event Expired"
             );
         }
+        require(
+            $.totalOcVolume[outcomeId] >= $.outcomeMinLiquid[outcomeId],
+            "Outcome liquid too low"
+        );
         (uint88 amount, uint88 positionLeft) = _calPositionReturnAmount(
             outcomeId,
             posAmount,
@@ -522,37 +537,15 @@ contract PredictMarket is OwnableUpgradeable, Base {
             console.log("totalEventVolume: ", $.totalEventVolume[eventId]);
             console.log("totalOcVolume: ", $.totalOcVolume[_outcomeId]);
             //calculate the amount must transfer to user
-            //if totalOutcomeVolume = 0 <=> user sell all the remain outcome volume => return exactly sellAmount
-            if ($.totalOcVolume[_outcomeId] < sellAmount) {
-                amount =
-                    sellAmount -
-                    (((sellAmount * (100 + $.rake)) *
-                        (sellAmount - $.totalOcVolume[_outcomeId])) /
-                        $.totalEventVolume[eventId]) /
-                    100;
-            } else {
-                amount =
-                    sellAmount +
-                    ((
-                        (sellAmount *
-                            ($.totalOcVolume[_outcomeId] - sellAmount))
-                    ) / $.totalEventVolume[eventId]);
-            }
-            require(
-                amount + $.minimumLiquidityPool <= $.totalEventVolume[eventId],
-                "Threshold reached"
-            );
+            //calculate the price
+            uint88 price = (($.totalOcVolume[_outcomeId] - sellAmount) *
+                (10 ** 6)) / ($.totalEventVolume[eventId] - sellAmount);
+            amount = (price * posAmount) / (10 ** 6);
             //minus the sell position and sell amount
             $.tickets[ticketId].positionAmount -= posAmount;
             $.tickets[ticketId].amount -= sellAmount;
-            if (amount > $.totalOcVolume[_outcomeId]) {
-                //event is losing money by this outcome
-                $.totalEventVolume[eventId] -= amount;
-                $.totalOcVolume[_outcomeId] = 0;
-            } else {
-                $.totalEventVolume[eventId] -= amount;
-                $.totalOcVolume[_outcomeId] -= amount;
-            }
+            $.totalEventVolume[eventId] -= amount;
+            $.totalOcVolume[_outcomeId] -= amount;
         } else if ($.events[eventId].status == EVENT_STATUS_CLOSED) {
             //calculate the price after event close
             if (!$.isOutcomeWinner[_outcomeId]) {
