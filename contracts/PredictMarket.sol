@@ -642,8 +642,12 @@ contract PredictMarket is OwnableUpgradeable, Base {
                     "Event closed force to sell all"
                 );
                 uint88 sellAmount = $.tickets[ticketId].amount;
-                $.totalEventVolume[eventId] -= sellAmount;
-                $.totalOcVolume[_outcomeId] -= sellAmount;
+                $.totalEventVolume[eventId] >= sellAmount
+                    ? $.totalEventVolume[eventId] -= sellAmount
+                    : 0;
+                $.totalOcVolume[_outcomeId] >= sellAmount
+                    ? $.totalOcVolume[_outcomeId] -= sellAmount
+                    : 0;
                 //calculate the amount must transfer to user
                 //apply the slippage
                 amount = posAmount;

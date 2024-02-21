@@ -14082,8 +14082,8 @@
       }
     },
     "ccbc3eb86af652f47c608f89b22aa8f684ae15ec07eea80f96ede044917a136b": {
-      "address": "0x36cB76F21B59B715Bda0b8933BD299FDB7EB67Ef",
-      "txHash": "0x681403f2220074b7adb815c693605ac0ab3628b84494ba04a5565cb74b2e559c",
+      "address": "0x6C739394aB4eb8217E42fdd207C3bE58Ec2E6dB2",
+      "txHash": "0xbce993643bd8ab6339b2ca1f35ae0005968a63e2b667c705b17886f4a55a9cd8",
       "layout": {
         "solcVersion": "0.8.20",
         "storage": [
@@ -14148,6 +14148,109 @@
             "numberOfBytes": "8"
           },
           "t_contract(IBookie)6617": {
+            "label": "contract IBookie",
+            "numberOfBytes": "20"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "d9e16df4624089a4f0a5036afa9086fce61f73e0584b5c2837d99b9500cbffa5": {
+      "address": "0xB94a9616f7608a1d53138bad7e9ecebdCf817040",
+      "txHash": "0xa7996941ed3978c3d48df83040877b25ab8b91cfe66a0dace4e60687f81ebf60",
+      "layout": {
+        "solcVersion": "0.8.20",
+        "storage": [
+          {
+            "label": "bookie",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IBookie)6633",
+            "contract": "Base",
+            "src": "contracts/libs/Base.sol:13"
+          },
+          {
+            "label": "paused",
+            "offset": 20,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Base",
+            "src": "contracts/libs/Base.sol:14"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)147_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)97_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_contract(IBookie)6633": {
             "label": "contract IBookie",
             "numberOfBytes": "20"
           }
